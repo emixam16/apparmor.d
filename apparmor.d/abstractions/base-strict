@@ -126,6 +126,16 @@
   /dev/urandom r,
   /dev/zero rw,
 
+  # Harmless and used by a lot of binaries to load shared libraries
+  @{etc_ro}/ld.so.cache mr,
+
+  owner @{PROC}/@{pid}/maps r,
+  @{PROC}/filesystems r,
+
+  # Reading the libc and the linker is required by almost everything
+  @{lib}/@{multiarch}/ld-linux-*.so.* mr,
+  @{lib}/@{multiarch}/libc.so.* mr,
+
   # The __canary_death_handler function writes a time-stamped log
   # message to /dev/log for logging by syslogd. So, /dev/log, timezones,
   # and localisations of date should be available EVERYWHERE, so

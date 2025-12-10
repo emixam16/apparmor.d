@@ -16,6 +16,7 @@ profile nm-dispatcher @{exec_path} flags=(attach_disconnected) {
   include <abstractions/python>
 
   capability net_admin,
+  capability sys_admin,
   capability sys_nice,
   capability sys_ptrace,
 
@@ -83,6 +84,8 @@ profile nm-dispatcher @{exec_path} flags=(attach_disconnected) {
   @{sys}/class/net/ r,
 
   owner @{PROC}/@{pid}/fd/ r,
+  owner @{PROC}/@{pid}/mounts r,
+
 
   /dev/tty rw,
 

@@ -54,7 +54,7 @@ profile openvpn @{exec_path} flags=(attach_disconnected) {
   /etc/openvpn/force-user-traffic-via-vpn.sh    rCx -> force-user-traffic-via-vpn,
   /etc/openvpn/update-resolv-conf{,.sh}         rCx -> update-resolv,
 
-  /etc/openvpn/{,**} r,
+  /etc/openvpn/{,**} rw,
   /etc/openvpn/static.key w,
 
   @{HOME}/.cert/{,**} r,
@@ -71,6 +71,15 @@ profile openvpn @{exec_path} flags=(attach_disconnected) {
   owner @{PROC}/@{pid}/net/route r,
 
   /dev/net/tun rw,
+
+  owner @{tmp}/openvpn.log w,
+  owner @{tmp}/openvpn/pki/ca.crt r,
+  owner @{tmp}/openvpn/pki/dh.pem r,
+  owner @{tmp}/openvpn/pki/issued/client.crt r,
+  owner @{tmp}/openvpn/pki/issued/server.crt r,
+  owner @{tmp}/openvpn/pki/private/client.key r,
+  owner @{tmp}/openvpn/pki/private/server.key r,
+  owner @{tmp}/openvpn/server.conf r,
 
   profile update-resolv {
     include <abstractions/base>

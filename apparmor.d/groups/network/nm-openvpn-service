@@ -30,6 +30,10 @@ profile nm-openvpn-service @{exec_path} flags=(attach_disconnected) {
   /dev/net/tun rw,
   /dev/tty rw,
 
+  owner @{tmp}/openvpn/pki/ca.crt r,
+  owner @{tmp}/openvpn/pki/issued/client.crt r,
+  owner @{tmp}/openvpn/pki/private/client.key r,
+
   owner @{PROC}/@{pid}/fd/ r,
 
   include if exists <local/nm-openvpn-service>

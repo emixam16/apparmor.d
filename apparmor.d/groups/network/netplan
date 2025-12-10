@@ -19,7 +19,7 @@ profile netplan @{exec_path} flags=(attach_disconnected) {
 
   @{bin}/ip                rPx,
   @{bin}/networkctl        rPx,
-  @{bin}/nmcli             rPx,
+  @{bin}/nmcli             mrPx,
   @{bin}/ovs-vsctl        rPUx,
   @{bin}/systemctl         rCx -> systemctl,
   @{bin}/udevadm           rPx,
@@ -30,6 +30,7 @@ profile netplan @{exec_path} flags=(attach_disconnected) {
   /etc/netplan/{,*} r,
 
   @{run}/netplan/ r,
+  @{run}/NetworkManager/devices/{,*} w,
   @{run}/NetworkManager/system-connections/netplan-* r,
   @{run}/systemd/network/ r,
   @{run}/systemd/system/ r,

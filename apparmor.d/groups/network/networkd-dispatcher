@@ -24,6 +24,7 @@ profile networkd-dispatcher @{exec_path} {
   @{bin}/chronyc    rPUx,
   @{bin}/ls          rix,
   @{bin}/networkctl  rPx,
+
   @{bin}/sed         rix,
 
   @{lib}/networkd-dispatcher/routable.d/postfix rix,

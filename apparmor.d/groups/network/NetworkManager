@@ -26,6 +26,7 @@ profile NetworkManager @{exec_path} flags=(attach_disconnected) {
   capability net_raw,
   capability setgid,
   capability setuid,
+  capability sys_admin,
   capability sys_chroot,
 
   network inet stream,
@@ -38,6 +39,8 @@ profile NetworkManager @{exec_path} flags=(attach_disconnected) {
   network packet dgram,
 
   signal (send) set=(term) peer=dnsmasq,
+
+  ptrace read,
 
   #aa:dbus own bus=system name=org.freedesktop.NetworkManager
 

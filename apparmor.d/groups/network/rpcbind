@@ -25,7 +25,9 @@ profile rpcbind @{exec_path} flags=(complain) {
   @{exec_path} rm,
 
   /etc/netconfig r,
+  /etc/hosts.{allow,deny} r,
 
+  @{run}/systemd/notify w,
   @{run}/rpcbind.lock rwkl,
   @{run}/rpcbind.sock rw,
   @{run}/rpcbind/*.xdr rwkl,

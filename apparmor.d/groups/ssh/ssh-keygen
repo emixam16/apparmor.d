@@ -15,7 +15,13 @@ profile ssh-keygen @{exec_path} {
 
   @{exec_path} mr,
 
+  unix (receive, send) type=stream,
+
   @{lib}/{,ssh/}ssh-sk-helper rPx -> ssh-sk-helper,
+
+  @{lib}/@{multiarch}/*.so* mr,
+  @{lib}/gcr*-ssh-askpass mrix,
+  @{lib}/openssh/ssh-sk-helper mrix,
 
   /etc/ssh/moduli rw,
   /etc/ssh/ssh_host_*_key* rw,
@@ -25,6 +31,8 @@ profile ssh-keygen @{exec_path} {
 
   owner /tmp/snapd@{int}/*_*{,.pub} w,
   owner /tmp/snapd@{int}/*.key{,.pub} w,
+  owner @{tmp}/dropbear_*.pub r,
+  owner @{tmp}/ssh-*/agent.* rw,
 
   /dev/tty@{u8} rw,
   /dev/ttyS@{int} rw,

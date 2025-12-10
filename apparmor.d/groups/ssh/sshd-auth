@@ -15,6 +15,9 @@ profile sshd-auth @{exec_path} {
   capability setgid,
   capability setuid,
   capability sys_chroot,
+  capability dac_read_search,
+
+  unix (receive, send) type=stream,
 
   network inet dgram,
   network inet stream,
@@ -26,6 +29,8 @@ profile sshd-auth @{exec_path} {
 
   @{exec_path} mr,
   @{sbin}/sshd.hmac r,
+
+  @{tmp}/ssh-@{rand12}/agent.* rw,
 
   /etc/gss/mech.d/{,*} r,
 

@@ -40,6 +40,8 @@ profile sshd-session @{exec_path} flags=(attach_disconnected) {
   network inet6 stream,
   network netlink raw,
 
+  unix (receive, send) type=stream,
+
   unix type=stream peer=(label=sshd),
   unix type=stream peer=(label=sshd-auth),
 
@@ -55,9 +57,11 @@ profile sshd-session @{exec_path} flags=(attach_disconnected) {
 
   @{exec_path} mr,
 
+  @{bin}/cat                       mrix,
   @{bin}/@{shells}                   Ux, #aa:exclude RBAC
   @{bin}/userdbctl                   Px,
   @{lib}/{openssh,ssh}/sshd-auth     Px,
+  @{lib}/openssh/ssh-sk-helper     mrix,
 
   @{etc_rw}/motd r,
   @{etc_rw}/motd.d/{,**} r,
@@ -69,6 +73,17 @@ profile sshd-session @{exec_path} flags=(attach_disconnected) {
   /var/lib/lastlog/ r,
   /var/lib/lastlog/lastlog2.db rwk,
   /var/lib/lastlog/lastlog2.db-journal rw,
+  /var/lib/sss/mc/initgroups r,
+
+  owner /var/tmp/krb5_0.* rwk,
+
+  owner @{lib}/@{multiarch}/libcap.so.* mr,
+  owner @{lib}/@{multiarch}/libcbor.so.* mr,
+  owner @{lib}/@{multiarch}/libcrypto.so.* mr,
+  owner @{lib}/@{multiarch}/libfido*.so.* mr,
+  owner @{lib}/@{multiarch}/libudev.so.* mr,
+  owner @{lib}/@{multiarch}/libz.so.* mr,
+  owner @{lib}/@{multiarch}/libzstd.so.* mr,
 
   /var/lib/wtmpdb/ w,
 
@@ -82,10 +97,19 @@ profile sshd-session @{exec_path} flags=(attach_disconnected) {
         @{run}/motd.d/{,*} r,
         @{run}/motd.dynamic rw,
         @{run}/motd.dynamic.new rw,
+        @{run}/systemd/sessions/*.ref w,
+        @{run}/userdb/ r,
+       @{run}/keycommand_ubuntu.* mrix,
+       @{run}/principals_command_ubuntu.* mrix,
+       @{run}/testdata_ubuntu.* r,
 
         @{PROC}/1/limits r,
   owner @{PROC}/@{pid}/loginuid rw,
   owner @{PROC}/@{pid}/uid_map r,
+
+  owner @{tmp}/ssh-*/agent.* rw,
+  owner @{tmp}/sshauth.* rw,
+  owner @{tmp}/ssh-* w,
 
   /dev/ptmx rw,
 

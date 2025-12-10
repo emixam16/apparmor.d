@@ -132,6 +132,11 @@ profile sshd @{exec_path} flags=(attach_disconnected) {
   /dev/tty@{u8} rw,
   /dev/ttyS@{int} rw,
 
+  @{tmp}/ssh-*/agent.* rw,
+  owner @{tmp}/*/sshd_config r,
+  owner @{tmp}/*/ssh_host_rsa_key.pub r,
+  owner @{tmp}/*/ssh_host_rsa_key r,
+
   include if exists <local/sshd>
 }
 

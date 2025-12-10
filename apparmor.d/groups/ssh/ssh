@@ -27,10 +27,30 @@ profile ssh @{exec_path} {
 
   @{exec_path} mrix,
 
+  unix (receive, send) type=stream,
+
   @{bin}/@{shells}     rUx,
   @{bin}/ssh.hmac      r,
+  @{bin}/grep          mrix,
+  @{bin}/cat           mrix,
 
   @{lib}/{,ssh/}ssh-sk-helper rix,
+  @{lib}/locale/* r,
+  @{lib}/openssh/ssh-sk-helper mrix,
+
+  @{lib}/@{multiarch}/gconv/gconv-modules.cache r,
+  @{lib}/@{multiarch}/libcap.so.* mr,
+  @{lib}/@{multiarch}/libcbor.so.* mr,
+  @{lib}/@{multiarch}/libcrypto.so.* mr,
+  @{lib}/@{multiarch}/libfido2.so.* mr,
+  @{lib}/@{multiarch}/libgcc_s.so.* mr,
+  @{lib}/@{multiarch}/libm.so.* mr,
+  @{lib}/@{multiarch}/libpcre*.so.* mr,
+  @{lib}/@{multiarch}/libselinux.so.* mr,
+  @{lib}/@{multiarch}/libudev.so.* mr,
+  @{lib}/@{multiarch}/libz.so.* mr,
+  @{lib}/@{multiarch}/libzstd.so.* mr,
+
 
   @{etc_ro}/ssh/ssh_config r,
   @{etc_ro}/ssh/ssh_config.d/{,*} r,
@@ -42,6 +62,8 @@ profile ssh @{exec_path} {
   owner @{HOME}/@{XDG_SSH_DIR}/{,*} r,
   owner @{HOME}/@{XDG_SSH_DIR}/known_hosts{,.*} rwl,
   owner @{HOME}/@{XDG_SSH_DIR}/ssh_control_*_*_* wl,
+  owner @{HOME}/@{run}/gvfsd-sftp/@{hex}.@{hex} rw,
+  owner @{HOME}/@{run}/gvfsd-sftp/@{hex} wl,
 
   owner @{user_projects_dirs}/**/ssh/{,*} r,
   owner @{user_projects_dirs}/**/config r,
@@ -56,9 +78,11 @@ profile ssh @{exec_path} {
 
   owner @{PROC}/@{pid}/loginuid r,
   owner @{PROC}/@{pid}/fd/ r,
+  @{PROC}/filesystems r,
 
   #aa:only test
   owner @{tmp}/ssh-@{rand10}/{,agent.@{int}} rw,
+  owner @{tmp}/openssh-*/ctl-sock{,.*} rwl,
 
   include if exists <local/ssh>
 }

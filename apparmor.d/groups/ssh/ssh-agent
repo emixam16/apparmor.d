@@ -12,15 +12,23 @@ profile ssh-agent @{exec_path} {
   include <abstractions/base>
   include <abstractions/nameservice-strict>
 
+  capability setgid,
+
   signal receive set=term peer=cockpit-bridge,
   signal receive set=term peer=cockpit-session,
   signal receive set=term peer=gnome-keyring-daemon,
+
+  unix (receive, send) type=stream,
 
   @{exec_path} mr,
 
   @{sh_path}                   rix,
   @{bin}/gpg-agent             rPx,
   @{bin}/im-launch             rPx,
+  @{bin}/sleep                mrix,
+
+  @{lib}/@{multiarch}/* mr,
+  @{lib}/openssh/ssh-sk-helper mrix,
 
   owner @{HOME}/@{XDG_SSH_DIR}/ rw,
   owner @{HOME}/@{XDG_SSH_DIR}/* r,
@@ -29,6 +37,10 @@ profile ssh-agent @{exec_path} {
 
   owner @{tmp}/ssh-@{rand12}/ rw,
   owner @{tmp}/ssh-@{rand12}/agent.@{int} rw,
+
+  owner @{tmp}/scratch-test-ssh-agent-process.*/.ssh.sock rw,
+  owner @{tmp}/scratch-test-ssh-agent-process.*/.ssh.sock w,
+  owner @{tmp}/scratch-test-ssh-agent-service.*/sockets/.ssh rw,
 
   owner @{run}/user/@{uid}/keyring/.ssh rw,
   owner @{run}/user/@{uid}/openssh_agent rw,

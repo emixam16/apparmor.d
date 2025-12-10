@@ -14,6 +14,12 @@ profile flatpak-oci-authenticator @{exec_path} {
   #aa:dbus own bus=session name=org.flatpak.Authenticator.Oci
 
   @{exec_path} mr,
+  network (connect) inet stream peer=(ip=127.0.0.1),
+  network (create, setopt) inet stream,
+  network (getattr, getopt) inet stream ip=127.0.0.1,
+  network (send, receive) inet stream ip=127.0.0.1 peer=(ip=127.0.0.1),
+
+  /var/tmp r,
 
   include if exists <local/flatpak-oci-authenticator>
 }

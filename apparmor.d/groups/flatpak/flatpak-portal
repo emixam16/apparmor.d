@@ -19,7 +19,11 @@ profile flatpak-portal @{exec_path} flags=(attach_disconnected) {
   capability sys_ptrace,
 
   network netlink raw,
+  network (connect) inet stream peer=(ip=127.0.0.1),
+  network (create, setopt) inet stream,
+  network (getattr, getopt) inet stream ip=127.0.0.1,
 
+  unix (receive, send) type=stream,
   unix (send receive) type=seqpacket peer=(label=fapp),
   unix (send receive) type=seqpacket peer=(label=fbwrap),
 
@@ -37,8 +41,22 @@ profile flatpak-portal @{exec_path} flags=(attach_disconnected) {
   @{exec_path} mr,
 
   @{bin}/flatpak rPx,
+  @{bin}/gpgconf mrpx,
+  @{bin}/gpg mrpx,
+  @{bin}/gpgsm mrpx,
+
+
+
+  @{lib}/flatpak-portal px,
+  @{lib}/installed-tests/Flatpak/mock-flatpak mrix,
+
+  @{lib}/@{multiarch}/*.so{,*} r,
+
+  / r,
 
   /usr/share/xdg-desktop-portal/portals/{,*.portal} r,
+  /usr/share/applications/mimeinfo.cache r,
+  /usr/share/applications/ r,
 
   owner /att/**/ r,
   owner @{att}/.flatpak-info r,

@@ -21,6 +21,13 @@ profile flatpak-session-helper @{exec_path} flags=(attach_disconnected,mediate_d
   signal send set=int peer=@{p_systemd},
   signal send set=int peer=flatpak-session-helper-app,
 
+  network (connect) inet stream peer=(ip=127.0.0.1),
+  network (create,setopt) inet stream,
+  network (getattr,getopt) inet stream ip=127.0.0.1,
+  network (receive,send) inet stream ip=127.0.0.1 peer=(ip=127.0.0.1),
+
+  unix (receive, send) type=seqpacket,
+
   #aa:dbus own bus=session name=org.freedesktop.Flatpak
 
   dbus receive bus=session
@@ -42,8 +49,15 @@ profile flatpak-session-helper @{exec_path} flags=(attach_disconnected,mediate_d
   @{lib}/p11-kit/p11-kit-remote        rix,
   @{lib}/p11-kit/p11-kit-server        rix,
 
+  /usr/share/ostree/trusted.gpg.d/ r,
+
+  /var/tmp r,
+
   /var/lib/flatpak/app/@{appid}/**/@{bin}/**  rPx -> flatpak-session-helper-app,
   /var/lib/flatpak/app/@{appid}/**/@{lib}/**  rPx -> flatpak-session-helper-app,
+
+  owner @{tmp}/dbus-* rw,
+  owner @{tmp}/flatpak-test-*/** rwk,
 
   owner @{user_config_dirs}/mimeapps.list w,
 

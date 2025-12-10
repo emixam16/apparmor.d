@@ -69,6 +69,8 @@ profile flatpak-app flags=(attach_disconnected,mediate_deleted) {
 
   /bindfile@{rand6} rw,
 
+  @{tmp}/test-tmp-Flatpak_test-seccomp.sh.test-*/try-syscall mrix,
+
   /var/lib/flatpak/app/{,**} r,
   /var/lib/flatpak/exports/** rw,
 

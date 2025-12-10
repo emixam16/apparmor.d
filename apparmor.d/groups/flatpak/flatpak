@@ -81,8 +81,13 @@ profile flatpak @{exec_path} flags=(attach_disconnected,mediate_deleted,complain
   @{bin}/gpg                 rCx -> gpg,
   @{bin}/gpgconf             rCx -> gpg,
   @{bin}/gpgsm               rCx -> gpg,
+  @{bin}/desktop-file-validate mrix,
+  @{bin}/flatpak px,
   @{lib}/revokefs-fuse       rix,
   @{lib}/flatpak-validate-icon rPx,
+
+  @{lib}/locale/* r,
+  @{lib}/@{multiarch}/** mr,
 
   # For flatpack enter, the shell is not confined on purpose.
   @{bin}/@{shells}           rUx,
@@ -104,6 +109,7 @@ profile flatpak @{exec_path} flags=(attach_disconnected,mediate_deleted,complain
         /var/tmp/flatpak-cache-@{rand6}/{,**/} r,
   owner /var/tmp/flatpak-cache-@{rand6}/ rw,
   owner /var/tmp/flatpak-cache-@{rand6}/** rwlk -> /var/tmp/flatpak-cache-@{rand6}/**,
+  owner /var/tmp/oci-layer-* rw,
 
   owner @{HOME}/.var/ w,
   owner @{HOME}/.var/app/{,**} rw,
@@ -131,10 +137,15 @@ profile flatpak @{exec_path} flags=(attach_disconnected,mediate_deleted,complain
   owner @{tmp}/ostree-gpg-@{rand6}/{,**} rw,
   owner @{tmp}/remote-summary-sig.@{rand6} rw,
   owner @{tmp}/remote-summary.@{rand6} rw,
+  owner @{tmp}/flatpak-test-*/** rw,
+  owner @{tmp}/ostree-gpg-@{rand6}/pubring.gpg l,
+  owner @{tmp}/tmp.@{rand10}{,/**} rw,
+
   owner /dev/shm/flatpak*/{,**} rw,
 
   @{att}@{run}/.userns r,
 
+        @{run}/log/journal/ r,
         @{run}/user/@{uid}/.dbus-proxy/ w,
         @{run}/user/@{uid}/dconf/user rw,
   owner @{run}/user/@{uid}/.dbus-proxy/* rw,
@@ -152,6 +163,8 @@ profile flatpak @{exec_path} flags=(attach_disconnected,mediate_deleted,complain
         @{PROC}/sys/fs/pipe-max-size r,
   owner @{PROC}/@{pid}/fdinfo/@{int} r,
   owner @{PROC}/@{pid}/stat r,
+
+  /usr/share/ostree/trusted.gpg.d/ r,
 
   /dev/fuse rw,
   /dev/tty rw,
@@ -176,6 +189,7 @@ profile flatpak @{exec_path} flags=(attach_disconnected,mediate_deleted,complain
 
     owner @{tmp}/ostree-gpg-@{rand6}/ rw,
     owner @{tmp}/ostree-gpg-@{rand6}/** rwkl -> /tmp/ostree-gpg-@{rand6}/**,
+    owner @{tmp}/flatpak-test-*/gpghome/** rwl,
 
     owner @{PROC}/@{pid}/fd/ r,
 

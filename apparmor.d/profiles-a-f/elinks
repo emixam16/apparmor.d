@@ -18,10 +18,18 @@ profile elinks @{exec_path} {
   network inet6 dgram,
   network inet stream,
   network inet6 stream,
-
+  network (bind, create, getattr,receive,send) netlink raw,
   @{exec_path} mr,
 
+  /dev/tty r,
+
+  owner @{HOME}/.  / w,
+  owner @{tmp}/tmp.*/test.html r,
+
   owner @{user_config_dirs}/elinks/{,**} rw,
+
+  owner @{PROC}/@{pid}/fd/ r,
+  owner @{PROC}/@{pid}/mounts r,
 
   include if exists <local/elinks>
 }

@@ -30,9 +30,13 @@ profile exim4 @{exec_path} flags=(attach_disconnected) {
   network inet6 stream,
   network netlink raw,
 
+  unix (bind) type=dgram addr=@/var/spool/exim4/exim_daemon_notify,
+
   signal (receive) peer=init-exim4,
 
   @{exec_path} mrix,
+
+  @{bin}/echo mrix,
 
   /etc/email-addresses r,
   /etc/aliases r,
@@ -45,10 +49,17 @@ profile exim4 @{exec_path} flags=(attach_disconnected) {
   /var/log/exim4/mainlog w,
   /var/log/exim4/paniclog w,
   /var/log/exim4/rejectlog w,
-  /var/spool/exim4/ r,
+  /var/spool/exim4/ rw,
   /var/spool/exim4/** rwk,
 
+  @{lib}/@{multiarch}/libgcc_s.so.* mr,
+  @{lib}/@{multiarch}/libm.so.* mr,
+  @{lib}/@{multiarch}/libpcre*.so.* mr,
+  @{lib}/@{multiarch}/libselinux.so.* mr,
+
   owner /var/mail/* rwkl -> /var/mail/*,
+
+  /etc/exim4/ r,
 
   /tmp/#@{int} rw,
 
@@ -56,6 +67,7 @@ profile exim4 @{exec_path} flags=(attach_disconnected) {
   owner @{run}/exim4/exim.pid rw,
 
   @{PROC}/sys/net/ipv6/conf/all/disable_ipv6 r,
+  owner @{PROC}/* r,
 
   include if exists <local/exim4>
 }

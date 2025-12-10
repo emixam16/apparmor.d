@@ -35,6 +35,7 @@ profile fail2ban-server @{exec_path} flags=(attach_disconnected) {
 
   @{run}/fail2ban/fail2ban.pid rw,
   @{run}/fail2ban/fail2ban.sock rw,
+  owner @{run}/log/journal/{,**} r,
 
   owner @{PROC}/@{pid}/fd/ r,
 

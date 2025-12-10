@@ -110,6 +110,8 @@ profile dkms @{exec_path} flags=(attach_disconnected) {
   owner /etc/kernel_key/*.crt r,
   owner /etc/kernel_key/*.key r,
   owner /etc/kernel_key/sign-kernel.sh rix,
+  owner @{lib}/modules/*/initrd/ w,
+
 
   owner @{HOME}/ r,
 

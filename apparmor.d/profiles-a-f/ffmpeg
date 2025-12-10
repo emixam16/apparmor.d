@@ -36,6 +36,11 @@ profile ffmpeg @{exec_path} {
   owner @{tmp}/*.@{image_ext} rw,  # To generate thumbnails in some apps
   owner @{tmp}/vidcutter/** rw, # TMP files for apps using ffmpeg
 
+  owner @{PROC}/@{pid}/fd/ r,
+  owner @{PROC}/@{pid}/mounts r,
+
+  /usr/local/lib/libapparmor.so{,*} mr,
+
   include if exists <local/ffmpeg>
 }
 

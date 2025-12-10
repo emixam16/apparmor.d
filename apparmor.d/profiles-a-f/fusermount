@@ -14,6 +14,8 @@ profile fusermount @{exec_path} flags=(attach_disconnected) {
 
   capability setuid,
 
+  unix (receive, send) type=seqpacket,
+
   # Be able to mount ISO images
   mount fstype={fuse,fuse.*} -> @{HOME}/**/,
   mount fstype={fuse,fuse.*} -> @{MOUNTS}/**/,
@@ -47,6 +49,11 @@ profile fusermount @{exec_path} flags=(attach_disconnected) {
   mount fstype=(fuse fuse.*) /tmp/autopkgtest.*/** -> /tmp/autopkgtest.*/**,
   mount fstype=fuse options=(ro nodev nosuid) borgfs -> /tmp/pytest-of-ubuntu/**,
   mount fstype=fuse options=(ro nodev nosuid) borgfs -> /tmp/tmp@{word8}/,
+  mount fstype=fuse options=(nodev, nosuid, rw) /dev/fuse -> @{tmp}/flatpak-test.*/,
+  mount fstype=fuse.revokefs-fuse options=(nodev, nosuid, rw) revokefs-fuse -> @{tmp}/flatpak-test-*/**/,
+  umount @{tmp}/flatpak-test.*/,
+  umount @{tmp}/flatpak-test-*/**/,
+  umount @{tmp}/*/,
   umount /tmp/tmp@{word8}/,
   umount /tmp/autopkgtest.*/**,
   /tmp/tmp@{word8}/ rw,

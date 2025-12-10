@@ -21,6 +21,7 @@ profile etckeeper @{exec_path} {
   @{bin}/{,e}grep       rix,
   @{bin}/cat            rix,
   @{bin}/chmod          rix,
+
   @{bin}/cut            rix,
   @{bin}/diff           rix,
   @{bin}/dpkg           rPx -> child-dpkg,
@@ -39,6 +40,7 @@ profile etckeeper @{exec_path} {
   @{bin}/sort           rix,
   @{bin}/tail           rix,
   @{bin}/tty            rix,
+
   @{bin}/uniq           rix,
   @{bin}/whoami         rix,
   @{bin}/xargs          rix,

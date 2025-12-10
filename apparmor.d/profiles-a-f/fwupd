@@ -69,6 +69,7 @@ profile fwupd @{exec_path} flags=(attach_disconnected) {
 
   /etc/machine-id r,
   /var/lib/dbus/machine-id r,
+  owner /var/etc/fwupd/fwupd.conf r,
 
   @{efi}/{,**} r,
   @{efi}/EFI/*/.goutputstream-@{rand6} rw,

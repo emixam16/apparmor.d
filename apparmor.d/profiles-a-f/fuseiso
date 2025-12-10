@@ -16,6 +16,7 @@ profile fuseiso @{exec_path} {
   mount fstype=fuse.fuseiso -> @{HOME}/*/,
   mount fstype=fuse.fuseiso -> @{HOME}/*/*/,
   mount fstype=fuse.fuseiso -> @{user_cache_dirs}/**/,
+  mount fstype=fuse.fuseiso options=(nodev, nosuid, rw) fuseiso -> @{tmp}/*/,
 
   @{exec_path} mr,
 
@@ -25,6 +26,9 @@ profile fuseiso @{exec_path} {
   owner @{HOME}/*/ rw,
   owner @{HOME}/*/*/ rw,
   owner @{user_cache_dirs}/**/ r,
+
+  owner @{tmp}/*.iso w,
+  @{tmp}/*.iso r,
 
   owner @{HOME}/.mtab.fuseiso rwk,
   owner @{HOME}/.mtab.fuseiso.new rw,
@@ -38,13 +42,19 @@ profile fuseiso @{exec_path} {
     include <abstractions/base>
     include <abstractions/app/fusermount>
 
+    capability setuid,
+
+    unix (receive, send) type=stream,
+
     mount fstype={fuse,fuse.fuseiso} -> @{HOME}/*/,
     mount fstype={fuse,fuse.fuseiso} -> @{HOME}/*/*/,
     mount fstype={fuse,fuse.fuseiso} -> @{user_cache_dirs}/**/,
-
+    mount fstype=fuse.fuseiso options=(nodev, nosuid, rw) fuseiso -> @{tmp}/*/,
     umount @{HOME}/*/,
     umount @{HOME}/*/*/,
     umount @{user_cache_dirs}/**/,
+
+    @{tmp}/*.iso r,
 
     owner @{user_img_dirs}/{,**} r, # Image files to be mounted
 

@@ -27,6 +27,7 @@ profile deluser @{exec_path} {
   @{bin}/gpasswd   rPx,
   @{sbin}/groupdel rPx,
   @{bin}/mount     rCx -> mount,
+  @{bin}/lzop     mrix,
   @{sbin}/userdel  rPx,
 
   /etc/adduser.conf r,
@@ -41,6 +42,9 @@ profile deluser @{exec_path} {
   # "--backup" and --backup-to flags.
   /   r,
   /** rwk,
+  owner @{PROC}/@{pid}/mounts r,
+  owner /* mrwk,
+
 
   profile mount {
     include <abstractions/base>

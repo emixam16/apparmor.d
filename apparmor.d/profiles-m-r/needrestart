@@ -36,6 +36,11 @@ profile needrestart @{exec_path} flags=(attach_disconnected) {
   @{etc_ro}/needrestart/notify.d/*         rPx,
   @{etc_ro}/needrestart/restart.d/*        rPx,
 
+  owner @{lib}/@{multiarch}/libgcc_s.so.* mr,
+  owner @{lib}/@{multiarch}/libm.so.* mr,
+  owner @{lib}/@{multiarch}/libpcre*.so.* mr,
+  owner @{lib}/@{multiarch}/libselinux.so.* mr,
+
   /etc/init.d/* r,
   /etc/needrestart/{,**} r,
   /etc/shadow r,

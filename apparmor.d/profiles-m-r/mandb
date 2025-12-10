@@ -31,6 +31,8 @@ profile mandb @{exec_path} {
 
   /usr/share/**/man/man@{u8}/*.@{int}.gz r,
 
+  owner @{tmp}/tmp.@{rand10}/** k,
+
   owner /var/cache/man/ rw,
   owner /var/cache/man/** rwk,
 

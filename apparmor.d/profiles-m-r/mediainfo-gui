@@ -19,6 +19,8 @@ profile mediainfo-gui @{exec_path} {
 
   @{open_path} rPx -> child-open-browsers,
 
+  /etc/machine-id r,
+
   include if exists <local/mediainfo-gui>
 }
 

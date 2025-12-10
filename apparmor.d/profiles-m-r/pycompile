@@ -31,7 +31,8 @@ profile pycompile @{exec_path} flags=(attach_disconnected,complain) {
   /usr/share/**/__pycache__/*.pyc.* rw,
 
   /usr/share/@{python_name}/{,**} r,
-  /usr/share/**.py r,
+  /usr/share/**.py r
+  owner /usr/share/debputy/{,debputy/{,plugins/,disabled-plugins/}} r,
 
   / r,
   @{bin}/ r,

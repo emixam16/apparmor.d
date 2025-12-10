@@ -16,11 +16,15 @@ profile nvidia-persistenced @{exec_path} {
   capability setgid,
   capability setuid,
 
+
   @{exec_path} mr,
 
   /etc/netconfig r,
 
   @{run}/nvidia-persistenced/{,**} rw,
+  @{run}/nvidia-persistenced/socket rw,
+  /var/run/nvidia-persistenced/socket rw,
+
   @{run}/nvidia-persistenced/*.pid k,
 
   include if exists <local/nvidia-persistenced>

@@ -44,6 +44,12 @@ profile mpd @{exec_path} {
   owner @{run}/mpd/ rw,
   owner @{run}/mpd/* rw,
 
+  owner @{tmp}/@{rand10} wrl,
+
+  @{sys}/devices/system/node/ r,
+
+  /usr/local/lib/libapparmor.so{,.*} mr,
+
   owner @{PROC}/@{pid}/cmdline r,
   owner @{PROC}/@{pid}/task/ r,
 

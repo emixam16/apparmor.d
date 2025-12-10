@@ -29,6 +29,8 @@ profile netstat @{exec_path} {
 
   @{exec_path} rmix,
 
+  @{PROC}/*/net/route r,
+
   /etc/networks r,
 
         @{PROC} r,

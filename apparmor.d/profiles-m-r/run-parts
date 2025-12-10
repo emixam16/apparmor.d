@@ -119,6 +119,14 @@ profile run-parts @{exec_path} {
   /etc/kernel/prerm.d/ r,
   /etc/kernel/prerm.d/* rPx,
 
+  /etc/logcheck/cracking.d/ r,
+  /etc/logcheck/ignore.d.paranoid/ r,
+  /etc/logcheck/ignore.d.server/ r,
+  /etc/logcheck/violations.d/ r,
+  /etc/logcheck/violations.ignore.d/ r,
+
+  /usr/share/pkg-perl-autopkgtest/*.d/ r,
+
   # Finalrd
   /usr/share/finalrd/ r,
   /usr/share/finalrd/mdadm.finalrd                rPUx,

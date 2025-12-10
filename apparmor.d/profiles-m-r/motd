@@ -29,6 +29,7 @@ profile motd @{exec_path} {
   @{bin}/dpkg        rPx -> child-dpkg,
   @{bin}/systemd-detect-virt rPx,
   @{bin}/wget        rCx -> wget,
+  @{bin}/gnuuname    mrix,
 
   @{lib}/ubuntu-release-upgrader/release-upgrade-motd            rPx,
   @{lib}/update-notifier/update-motd-fsck-at-reboot              rPx,
@@ -43,8 +44,10 @@ profile motd @{exec_path} {
   /etc/lsb-release r,
   /etc/update-motd.d/* r,
   /etc/wgetrc r,
+  /etc/os-release r,
 
   /var/cache/motd-news rw,
+
   /var/lib/update-notifier/updates-available r,
   /var/lib/ubuntu-advantage/messages/motd-esm-announce r,
   /var/lib/cloud/instances/nocloud/cloud-config.txt r,

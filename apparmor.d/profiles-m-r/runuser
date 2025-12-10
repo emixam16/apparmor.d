@@ -25,15 +25,45 @@ profile runuser @{exec_path} {
   @{exec_path} mr,
 
   @{bin}/@{shells}    rUx,
-  @{bin}/mkdir ix,
+  @{bin}/mkdir mrix,
+  @{bin}/pamtester mrix,
+  @{bin}/softhsm2-util mrix,
+  @{bin}/ln mrix,
+
+  /usr/sbin/unix_chkpwd mr,
+
+
+  @{lib}/@{multiarch}/*.so{,.*} mr,
 
   @{etc_ro}/security/limits.d/ r,
   /etc/default/runuser r,
 
   owner @{tmp}/debian-security-support.postinst.*/output w,
 
+  /etc/ r,
+  /etc/login.defs r,
+  /etc/nsswitch.conf r,
+  /etc/pam.d/{,*} r,
+  /etc/softhsm/ r,
+  /etc/softhsm/softhsm*.conf rw,
+
+  owner @{HOME}/{,.**} rw,
+
         @{PROC}/1/limits r,
   owner @{PROC}/@{pid}/loginuid r,
+  owner @{PROC}/*/{,loginuid,maps,status} r,
+  @{PROC}/sys/kernel/cap_last_cap r,
+
+  / r,
+
+  @{tmp}/dbconfig-common_sqlfile.* r,
+  @{tmp}/sssd-softhsm*-gdm-certs-*/** rwk,
+  @{tmp}/tmp.@{rand10}/out r,
+
+  owner /usr/share/dbconfig-common/data/rsyslog-pgsql/install/pgsql r,
+
+  owner /var/lib/gdm*/{,*} rw ,
+  /var/{,lib/{,sss/}} rw,
 
   include if exists <local/runuser>
 }

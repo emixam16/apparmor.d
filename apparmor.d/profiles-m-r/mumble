@@ -38,6 +38,9 @@ profile mumble @{exec_path} {
   /etc/machine-id r,
   /var/lib/dbus/machine-id r,
 
+  @{lib}/ r,
+  /usr/local/lib/ r,
+
   owner @{HOME}/ r,
   owner @{HOME}/.jackdrc r,
   owner @{HOME}/.MumbleOverlayPipe rw,

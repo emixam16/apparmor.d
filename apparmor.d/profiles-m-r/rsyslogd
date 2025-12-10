@@ -22,6 +22,8 @@ profile rsyslogd @{exec_path} {
 
   network inet dgram,
   network inet6 dgram,
+  network inet6 stream,
+  network inet stream,
 
   signal receive set=hup peer=@{p_systemd},
 
@@ -32,13 +34,19 @@ profile rsyslogd @{exec_path} {
 
   /etc/rsyslog.conf r,
   /etc/rsyslog.d/{,**} r,
+  /etc/gss/mech.d/ r,
+  /etc/mysql/**/{,*.cnf} r,
 
   /var/log/** rw,
   /var/spool/rsyslog/ r,
   /var/spool/rsyslog/** rw,
+  /var/spool/postfix/dev/log w,
 
   owner @{run}/rsyslogd.pid{,.tmp} rwk,
   owner @{run}/systemd/journal/syslog w,
+  @{run}/mysqld/mysqld.sock rw,
+
+  /usr/share/mysql/charsets/Index.xml r,
 
   @{PROC}/1/environ r,
   @{PROC}/cmdline r,

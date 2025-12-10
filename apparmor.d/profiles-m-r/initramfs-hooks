@@ -44,6 +44,7 @@ profile initramfs-hooks @{exec_path} {
   /usr/share/*/initramfs/{,**} r,
   /usr/share/initramfs-tools/{,**} r,
   /usr/share/plymouth/{,**} r,
+  /usr/share/misc/ r,
 
   /etc/console-setup/{,**} r,
   /etc/cryptsetup-initramfs/{,**} r,

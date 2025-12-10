@@ -17,7 +17,7 @@ profile reprepro @{exec_path} {
   @{bin}/gpgconf rCx -> gpg,
   @{bin}/gpg{,2} rCx -> gpg,
   @{bin}/gpgsm   rCx -> gpg,
-
+  @{bin}/zstd   mrix,
   /var/cache/apt/archives/*.deb r,
 
   owner @{user_projects_dirs}/** r,
@@ -25,6 +25,13 @@ profile reprepro @{exec_path} {
 
   owner @{user_pkg_dirs}/ rw,
   owner @{user_pkg_dirs}/** rwlk,
+
+  @{lib}/@{multiarch}/liblz4.so.* mr,
+  @{lib}/@{multiarch}/liblzma.so.* mr,
+  @{lib}/@{multiarch}/libxxhash.so.* mr,
+  @{lib}/@{multiarch}/libz.so.* mr,
+
+  @{PROC}/sys/vm/overcommit_memory r,
 
   # For package building
   owner @{user_build_dirs}/pbuilder/result/*.{dsc,changes} r,

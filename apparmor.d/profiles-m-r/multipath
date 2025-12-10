@@ -13,6 +13,7 @@ profile multipath @{exec_path} flags=(attach_disconnected) {
 
   capability sys_admin,
   capability sys_resource,
+  capability sys_rawio,
 
   unix (send, receive, connect) type=stream peer=(addr="@/org/kernel/linux/storage/multipathd"),
 

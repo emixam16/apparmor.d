@@ -24,6 +24,8 @@ profile systemd-generator-sshd-socket @{exec_path} {
 
   @{run}/systemd/generator/ssh.socket.d/{,*} rw,
 
+  owner @{tmp}/tmp.*/test_*/** w,
+
   include if exists <local/systemd-generator-sshd-socket>
 }
 

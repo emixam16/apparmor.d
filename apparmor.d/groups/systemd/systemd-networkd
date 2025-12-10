@@ -53,6 +53,9 @@ profile systemd-networkd @{exec_path} flags=(attach_disconnected) {
   /var/lib/dbus/machine-id r,
   /etc/machine-id r,
 
+  owner /etc/nsswitch.conf r,
+  owner /etc/passwd r,
+
   /etc/systemd/network.conf r,
   /etc/systemd/network/{,**} r,
   /etc/systemd/networkd.conf r,
@@ -75,6 +78,7 @@ profile systemd-networkd @{exec_path} flags=(attach_disconnected) {
         @{run}/systemd/network/ r,
         @{run}/systemd/network/*.network r,
   owner @{run}/systemd/netif/** rw,
+  owner @{PROC}/*/setgroups r,
 
   @{run}/udev/data/n@{int} r,             # For network interfaces
 
@@ -89,6 +93,9 @@ profile systemd-networkd @{exec_path} flags=(attach_disconnected) {
   @{sys}/fs/cgroup/ r,
   @{sys}/fs/cgroup/system.slice/networkd-*.service/ r,
   @{sys}/kernel/btf/vmlinux r,
+  @{sys}/class/net/ r,
+  @{sys}/fs/cgroup/system.slice/system-systemd\x2dnetworkd.slice/systemd-networkd.service/ r,
+
 
         @{PROC}/@{pid}/cgroup r,
         @{PROC}/@{pid}/mountinfo r,

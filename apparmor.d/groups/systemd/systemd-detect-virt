@@ -13,6 +13,7 @@ profile systemd-detect-virt @{exec_path} flags=(attach_disconnected) {
   include <abstractions/consoles>
 
   capability sys_ptrace,
+  capability perfmon,
 
   ptrace read peer=@{p_systemd},
 
@@ -41,6 +42,8 @@ profile systemd-detect-virt @{exec_path} flags=(attach_disconnected) {
   @{PROC}/xen/capabilities r,
 
   /dev/cpu/@{int}/msr r,
+
+  owner @{tmp}/tmp.*/{out,err} w,
 
   deny capability net_admin,
   deny capability perfmon,

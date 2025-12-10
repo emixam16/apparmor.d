@@ -38,9 +38,17 @@ profile systemd-resolved @{exec_path} flags=(attach_disconnected) {
 
   @{run}/systemd/netif/links/* r,
   @{run}/systemd/resolve/{,**} rw,
+  @{run}/dnssec-trust-anchors.d/example.com.negative r,
+  @{run}/dnssec-trust-anchors.d/ r,
+  @{run}/systemd/resolved.conf.d/ r,
+  @{run}/systemd/resolved.conf.d/test-enable-dnssec.conf r,
 
   @{PROC}/@{pid}/cgroup r,
   @{PROC}/pressure/* r,
+  owner @{PROC}/@{pid}/fd/ r,
+  owner @{PROC}/@{pid}/mountinfo r,
+  owner @{PROC}/@{pid}/mounts r,
+
   @{PROC}/sys/kernel/hostname r,
   @{PROC}/sys/net/ipv{4,6}/conf/all/disable_ipv{4,6} r,
 

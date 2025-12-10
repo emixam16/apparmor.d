@@ -30,6 +30,14 @@ profile umount @{exec_path} {
   @{bin}/umount.*  rPx,
   @{bin}/mount.*   rPx,
 
+  owner @{lib}/@{multiarch}/libecryptfs.so.* mr,
+  owner @{lib}/@{multiarch}/libkeyutils.so.* mr,
+  owner @{lib}/@{multiarch}/libnspr*.so mr,
+  owner @{lib}/@{multiarch}/libnss*.so mr,
+  owner @{lib}/@{multiarch}/libplc*.so mr,
+  owner @{lib}/@{multiarch}/libplds*.so mr,
+
+
   /etc/mtab r,
   /etc/fstab r,
 
@@ -40,6 +48,8 @@ profile umount @{exec_path} {
   @{user_cache_dirs}/*/*/ r,
   @{MOUNTS}/*/ r,
   @{MOUNTS}/*/*/ r,
+
+  @{PROC}/* r,
 
   owner @{run}/mount/ rw,
   owner @{run}/mount/utab{,.*} rwk,

@@ -20,6 +20,7 @@ profile lsblk @{exec_path} flags=(attach_disconnected) {
   @{exec_path} mr,
 
         @{PROC}/swaps r,
+
   owner @{PROC}/@{pid}/mountinfo r,
 
   @{run}/mount/utab r,

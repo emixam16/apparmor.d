@@ -23,6 +23,10 @@ profile df @{exec_path} flags=(attach_disconnected) {
   /**/ r,
 
   owner @{PROC}/@{pid}/mountinfo r,
+  /dev/ptmx rw,
+  owner @{tmp}/tmp.*/.crash w,
+  owner /var/crash/*/*.crash w,
+  owner /var/crash/*.crash w,
 
   include if exists <local/df>
 }

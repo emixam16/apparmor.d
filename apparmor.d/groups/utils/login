@@ -60,6 +60,8 @@ profile login @{exec_path} flags=(attach_disconnected) {
   owner @{user_cache_dirs}/ w,
   owner @{user_cache_dirs}/motd.legal-displayed rw,
 
+  owner @{HOME}/.cache/ w,
+
   @{att}@{run}/systemd/sessions/@{int}.ref w,
 
   @{run}/credentials/getty@tty@{int}.service/ r,
@@ -73,6 +75,8 @@ profile login @{exec_path} flags=(attach_disconnected) {
   owner @{PROC}/@{pid}/uid_map r,
 
   /dev/tty@{u8} rw,
+
+  owner @{HOME}/.cache/ w,
 
   include if exists <local/login>
 }

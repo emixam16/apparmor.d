@@ -13,6 +13,8 @@ profile lsscsi @{exec_path} {
 
   @{exec_path} mr,
 
+  mqueue getattr type=posix,
+
   / r,
 
   @{sys}/bus/scsi/devices/ r,

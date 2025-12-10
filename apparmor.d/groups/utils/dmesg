@@ -22,10 +22,15 @@ profile dmesg @{exec_path} flags=(attach_disconnected) {
   @{pager_path} rPx -> child-pager,
 
   /usr/share/terminfo/** r,
+  owner @{HOME}/.terminfo/** r,
 
   @{PROC}/sys/kernel/pid_max r,
 
   /dev/kmsg r,
+  /dev/ptmx rw,
+  owner @{tmp}/tmp.*/rootdir/var/crash/.crash w,
+  owner /var/crash/*.crash w,
+
 
   deny @{bin}/{,*/} r,
   deny /{usr/,}local/{,s}bin/ r,

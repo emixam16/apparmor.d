@@ -22,6 +22,7 @@ profile update-info-dir @{exec_path} {
   /usr/share/info/ r,
   /usr/share/info/dir rw,
   /usr/share/info/dir.old w,
+  /usr/share/info/emacs/ r,
 
   /etc/environment r,
 

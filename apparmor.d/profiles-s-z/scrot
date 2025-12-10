@@ -27,6 +27,8 @@ profile scrot @{exec_path} {
 
   /dev/shm/#@{int} rw,
 
+  owner @{tmp}/xvfb-run.*/Xauthority r,
+
   include if exists <local/scrot>
 }
 

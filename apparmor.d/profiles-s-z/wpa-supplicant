@@ -21,6 +21,7 @@ profile wpa-supplicant @{exec_path} flags=(attach_disconnected) {
   capability net_admin,
   capability net_raw,
   capability sys_module,
+  capability sys_admin,
 
   network inet dgram,
   network inet6 dgram,

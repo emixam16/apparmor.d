@@ -20,6 +20,8 @@ profile sysstat-sadc @{exec_path} {
 
   /var/log/sysstat/{,**} rwk,
 
+  owner /dev/pts/* rw,
+
   @{sys}/bus/i2c/devices/ r,
   @{sys}/bus/usb/devices/ r,
   @{sys}/class/fc_host/ r,

@@ -25,6 +25,8 @@ profile update-alternatives @{exec_path} {
   /etc/**.dpkg-tmp rw,
   /etc/pam.d/gdm-smartcard w,
   /etc/alternatives/* rw,
+  /etc/cifs-utils/idmap-plugin w,
+  /etc/mysql/my.cnf w,
 
   /var/lib/dpkg/alternatives/ r,
   /var/lib/dpkg/alternatives/* rw,

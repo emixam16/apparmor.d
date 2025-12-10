@@ -25,6 +25,8 @@ profile whatis @{exec_path} {
 
   owner @{HOME}/.manpath r,
 
+  owner @{tmp}/tmp.@{rand10}/manpath.config/{,**} rk,
+
   owner @{user_share_dirs}/man/{,**/}{,whatis} r,
   owner @{user_share_dirs}/man/{,**/}index.{bt,db,dir,pag} rk,
 

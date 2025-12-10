@@ -25,6 +25,7 @@ profile sgdisk @{exec_path} {
 
   #aa:only test
   /tmp/@{rand10}/{,**} rw,
+  owner @{tmp}/tmp.*{/*} rw,
 
   include if exists <local/sgdisk>
 }

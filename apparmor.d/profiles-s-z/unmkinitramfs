@@ -14,6 +14,7 @@ profile unmkinitramfs @{exec_path} {
   # To avoid the following error:
   #  cpio: etc/console-setup/null: Cannot mknod: Operation not permitted
   capability mknod,
+  capability dac_override,
 
   @{exec_path} r,
 
@@ -24,6 +25,7 @@ profile unmkinitramfs @{exec_path} {
   @{bin}/cat        rix,
   @{bin}/dd         rix,
   @{bin}/getopt     rix,
+  @{bin}/lz4        rix,
   @{bin}/lz4cat     rix,
   @{bin}/lzma       rix,
   @{bin}/lzop       rix,
@@ -31,6 +33,15 @@ profile unmkinitramfs @{exec_path} {
   @{bin}/mktemp     rix,
   @{bin}/rm         rix,
   @{bin}/xzcat      rix,
+
+  owner /etc/group r,
+  owner /etc/nsswitch.conf r,
+  owner /etc/passwd r,
+
+  @{sys}/devices/system/cpu/online r,
+
+  @{lib}/@{multiarch}/liblz4.so.* mr,
+  @{lib}/@{multiarch}/libxxhash.so.* mr,
 
         @{efi}/ r,
   owner @{efi}/initrd.img-* r,

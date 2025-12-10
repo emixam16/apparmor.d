@@ -17,6 +17,8 @@ profile update-catalog @{exec_path} {
   /etc/sgml/ r,
   /etc/sgml/* r,
 
+  owner /dev/pts/* rw,
+
   /var/lib/sgml-base/*catalog rw,
   /var/lib/sgml-base/*catalog.new rw,
   /var/lib/sgml-base/*catalog.old w,

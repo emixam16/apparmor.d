@@ -26,6 +26,8 @@ profile wireshark @{exec_path} {
 
   signal (send) peer=dumpcap,
 
+  ptrace read,
+
   @{exec_path} mr,
 
   @{bin}/dumpcap          rPx,
@@ -33,6 +35,8 @@ profile wireshark @{exec_path} {
 
   @{lib}/@{multiarch}/wireshark/extcap/* rix,
   @{lib}/@{multiarch}/wireshark/plugins/*/{codecs,epan,wiretap}/*.so mr,
+
+  /usr/local/lib/libapparmor.so{,.*} mr,
 
   /usr/share/GeoIP/{,**} r,
   /usr/share/wireshark/** r,
@@ -47,6 +51,7 @@ profile wireshark @{exec_path} {
   owner @{user_config_dirs}/wireshark/{,**} rw,
 
   owner @{tmp}/wireshark_extcap_ciscodump_@{int}_* rw,
+  owner @{tmp}/xvfb-run.*/Xauthority r,
 
   deny       @{PROC}/sys/kernel/random/boot_id r,
   deny owner @{PROC}/@{pid}/cmdline r,

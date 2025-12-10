@@ -21,7 +21,7 @@ profile ucfr @{exec_path} {
   @{bin}/dirname                ix,
   @{bin}/getopt                 ix,
   @{bin}/id                     ix,
-  @{bin}/mv                     ix,
+  @{bin}/{,gnu}mv               ix,
   @{bin}/readlink               ix,
   @{bin}/sed                    ix,
   @{bin}/seq                    ix,
@@ -31,6 +31,15 @@ profile ucfr @{exec_path} {
   /etc/ucf.conf r,
 
   / r,
+
+  owner @{lib}/@{multiarch}/libacl.so.* mr,
+  owner @{lib}/@{multiarch}/libattr.so.* mr,
+  owner @{lib}/@{multiarch}/libgcc_s.so.* mr,
+  owner @{lib}/@{multiarch}/libm.so.* mr,
+  owner @{lib}/@{multiarch}/libpcre*.so.* mr,
+  owner @{lib}/@{multiarch}/libselinux.so.* mr,
+
+  owner @{PROC}/*/ r,
 
   /var/lib/ucf/ r,
   /var/lib/ucf/registry r,

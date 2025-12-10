@@ -25,6 +25,7 @@ profile firewalld @{exec_path} flags=(attach_disconnected) {
   network inet6 raw,
   network netlink raw,
 
+  network (connect, create) inet6 dgram,
   #aa:dbus own bus=system name=org.fedoraproject.FirewallD1
 
   @{exec_path} mr,
@@ -49,6 +50,7 @@ profile firewalld @{exec_path} flags=(attach_disconnected) {
   /etc/firewalld/{,**} rw,
   /etc/iproute2/group r,
   /etc/iproute2/rt_realms r,
+  owner /etc/ethertypes r,
 
   /var/lib/ebtables/lock rwk,
 
@@ -59,6 +61,7 @@ profile firewalld @{exec_path} flags=(attach_disconnected) {
 
         @{PROC}/sys/kernel/modprobe r,
         @{PROC}/sys/net/ipv{4,6}/ip_forward rw,
+        @{PROC}/sys/net/ipv{4,6}/conf/all/forwarding w,
   owner @{PROC}/@{pid}/fd/ r,
   owner @{PROC}/@{pid}/mounts r,
   owner @{PROC}/@{pids}/net/ip_tables_names r,

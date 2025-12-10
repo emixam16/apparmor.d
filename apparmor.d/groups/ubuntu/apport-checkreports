@@ -23,6 +23,8 @@ profile apport-checkreports @{exec_path} flags=(attach_disconnected)  {
   @{etc_ro}/login.defs r,
   /etc/apt/apt.conf.d/{,**} r,
   /etc/default/apport r,
+  capability dac_override,
+  owner @{tmp}/tmp*/ r,
 
   /var/crash/ r,
 

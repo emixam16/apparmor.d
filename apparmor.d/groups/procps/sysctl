@@ -13,6 +13,8 @@ profile sysctl @{exec_path} {
   include <abstractions/base>
   include <abstractions/consoles>
 
+  capability checkpoint_restore,
+  capability mac_admin,
   capability net_admin,
   capability sys_admin,
   capability sys_ptrace,

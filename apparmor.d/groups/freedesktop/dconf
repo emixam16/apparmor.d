@@ -22,6 +22,9 @@ profile dconf @{exec_path} flags=(attach_disconnected) {
 
   /usr/share/gdm/dconf/{,**} r,
 
+  owner /dev/pts/* rw,
+  owner @{run}/dbus/system_bus_socket rw,
+
   owner @{GDM_HOME}/ r,
   owner @{GDM_HOME}/greeter-dconf-defaults{,.@{rand6}} rw,
 

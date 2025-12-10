@@ -51,6 +51,8 @@ profile xdg-dbus-proxy @{exec_path} flags=(attach_disconnected) {
 
   deny owner @{user_share_dirs}/gvfs-metadata/{,*} r,
 
+  owner @{tmp}/flatpak-test-*/runtime/.dbus-proxy/session-bus-proxy-* w,
+
   include if exists <local/xdg-dbus-proxy>
 }
 

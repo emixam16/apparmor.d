@@ -45,6 +45,7 @@ profile update-motd-fsck-at-reboot @{exec_path} flags=(attach_disconnected) {
     @{sys}/devices/virtual/block/**/autoclear r,
     @{sys}/devices/virtual/block/**/backing_file r,
     @{sys}/devices/virtual/block/dm-@{int}/dm/name r,
+    @{sys}/devices/pci*:*/*:*:*.*/**/ r,
 
     @{PROC}/@{pid}/mountinfo r,
 

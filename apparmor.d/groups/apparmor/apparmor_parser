@@ -33,6 +33,9 @@ profile apparmor_parser @{exec_path} flags=(attach_disconnected) {
   /etc/apparmor/cache.d/{,**} rw,
   /etc/apparmor/earlypolicy/{,**} rw,
 
+  # Packages can be loaded from everywhere. We should at least allow loading from home
+  owner @{HOME}/** r,
+
   owner /snap/core@{int}/@{int}/etc/apparmor.d/{,**} r,
   owner /snap/core@{int}/@{int}/etc/apparmor/* r,
   owner /var/cache/apparmor/{,**} rw,
@@ -41,6 +44,7 @@ profile apparmor_parser @{exec_path} flags=(attach_disconnected) {
   owner /var/snap/lxd/common/lxd/security/apparmor/{,**} rw,
 
   owner @{tmp}/cri-containerd.apparmor.d@{int} r,
+  owner @{tmp}/aa_violator.* r,
 
         @{sys}/kernel/security/apparmor/{,**} r,
   owner @{sys}/kernel/security/apparmor/.{remove,replace,load,access} rw,

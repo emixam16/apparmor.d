@@ -60,6 +60,7 @@ profile gpg-agent @{exec_path} {
   owner @{tmp}/**/{.,}gnupg/private-keys-v1.d/@{hex}.key{,.tmp} rw,
   owner @{tmp}/**/{.,}gnupg/{,d.@{rand}/}S.gpg-agent{,.ssh,.browser,.extra} rw,
   owner @{tmp}/**/{.,}gnupg/sshcontrol r,
+  owner @{tmp}/tmp.*/** rw,
 
   #aa:only pacman
   owner /etc/pacman.d/gnupg/ rw,

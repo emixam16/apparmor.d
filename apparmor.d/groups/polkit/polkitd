@@ -76,6 +76,9 @@ profile polkitd @{exec_path} flags=(attach_disconnected) {
 
   owner @{PROC}/@{pid}/fdinfo/@{int} r,
 
+
+  @{run}/systemd/notify w,
+
   include if exists <local/polkitd>
 }
 

@@ -26,6 +26,7 @@ profile dbus-system flags=(attach_disconnected) {
   capability setuid,
   capability sys_ptrace,
   capability sys_resource,
+  capability dac_read_search,
 
   network netlink raw,
   network bluetooth stream,
@@ -35,6 +36,10 @@ profile dbus-system flags=(attach_disconnected) {
 
   # Internal stack dbus-system//&unconfined
   signal (send receive) set=kill peer=dbus-system//&unconfined,
+  signal receive set=hup peer=dbus-system//&unconfined,
+  signal send set=hup peer=dbus-system//&unconfined,
+  unix (send) type=stream,
+  /usr/local/lib/libapparmor.so{,*} mr,
   unix type=stream peer=(label=unconfined),
 
   unix type=seqpacket peer=(label=flatpak-system-helper),
@@ -76,6 +81,8 @@ profile dbus-system flags=(attach_disconnected) {
 
   @{att}@{run}/systemd/inhibit/@{int}.ref rw,
   @{att}@{run}/systemd/sessions/{,@{l}}@{int}.ref rw,
+  @{run}/systemd/inhibit/*.ref w,
+  @{run}/systemd/sessions/*.ref w,
 
   @{run}/systemd/users/@{int} r,
 

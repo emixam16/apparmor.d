@@ -21,7 +21,11 @@ profile dbus-session flags=(attach_disconnected) {
   include <abstractions/deny-sensitive-home>
   include <abstractions/nameservice-strict>
 
+  capability net_admin,
   network unix stream,
+  network (create) netlink raw,
+  /usr/local/lib/libapparmor.so{,.*} mr,
+
 
   unix (send receive) type=stream addr=none peer=(label=gnome-shell, addr=none),
   unix type=stream peer=(label=fapp),
@@ -93,6 +97,11 @@ profile dbus-session flags=(attach_disconnected) {
   owner @{PROC}/@{pid}/fdinfo/@{int} r,
   owner @{PROC}/@{pid}/mounts r,
   owner @{PROC}/@{pid}/oom_score_adj r,
+
+  owner @{run}/user/*/dconf/user w,
+  owner @{run}/user/*/bus r,
+  owner @{run}/user/*/dbus-1/services/* r,
+  owner @{HOME}/.dbus/session-bus/* rw,
 
   /dev/ptmx rw,
   /dev/tty@{u8} rw,

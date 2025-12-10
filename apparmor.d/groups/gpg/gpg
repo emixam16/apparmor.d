@@ -57,6 +57,7 @@ profile gpg @{exec_path} {
 
   owner @{HOME}/.var/app/**/gnupg*/** rw,
   owner @{HOME}/.var/app/**/gnupg*/** rwkl -> @{HOME}/.var/app/**/gnupg*/**,
+  owner @{HOME}/.local/share/libjcat/gnupg/.#*.autopkgtest.* wl,
 
   owner @{user_projects_dirs}/**/gnupg/ rw,
   owner @{user_projects_dirs}/**/gnupg/** rwkl -> @{user_projects_dirs}/**/gnupg/**,
@@ -72,6 +73,15 @@ profile gpg @{exec_path} {
   #aa:only ubuntu
   /tmp/ubuntu-release-upgrader-@{rand8}/*.tar.gz rw,
   /tmp/ubuntu-release-upgrader-@{rand8}/*.tar.gz.gpg rw,
+
+  owner @{tmp}/epg-* rw,
+  owner @{tmp}/ostree-gpg-*/.#*.autopkgtest.* wl,
+  owner @{tmp}/repo-*/gnupg/* rwl,
+
+  owner @{tmp}/tmp.*/* rwl,
+  owner @{tmp}/tmp.*/key-batch r,
+  owner @{tmp}/tmp.*/pubring.kbx.asc r,
+  owner @{tmp}/tmp.*/status w,
 
   owner /tmp/@{int}@{int} rw,
 

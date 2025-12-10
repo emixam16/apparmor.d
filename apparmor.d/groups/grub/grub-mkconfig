@@ -89,6 +89,7 @@ profile grub-mkconfig @{exec_path} flags=(attach_disconnected) {
   @{sys}/firmware/efi/efivars/OsIndicationsSupported-@{uuid} r,
 
   @{PROC}/@{pids}/mountinfo r,
+
   @{PROC}/@{pids}/mounts r,
 
   /dev/tty@{u8} rw,

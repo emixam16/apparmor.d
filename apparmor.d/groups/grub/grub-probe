@@ -30,8 +30,12 @@ profile grub-probe @{exec_path} flags=(attach_disconnected) {
   @{efi}/grub/ r,
   @{efi}/grub/themes/{,**} r,
 
+
+  owner /boot/grub/device.map r,
+
   @{PROC}/@{pids}/mountinfo r,
   @{PROC}/devices r,
+
 
   /dev/**/ r,
   /dev/mapper/control w,

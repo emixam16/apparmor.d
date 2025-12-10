@@ -13,7 +13,10 @@ profile nft @{exec_path} flags=(attach_disconnected) {
   include <abstractions/nameservice-strict>
 
   capability net_admin,
+  capability syslog,
 
+  network (connect, create, setopt) inet6 dgram,
+  network (connect, create, setopt) inet dgram,
   network netlink raw,
 
   ptrace (read),
@@ -31,6 +34,18 @@ profile nft @{exec_path} flags=(attach_disconnected) {
   @{PROC}/1/environ r,
   @{PROC}/cmdline r,
   @{PROC}/sys/kernel/osrelease r,
+  @{PROC}/*/fd/ r,
+  @{PROC}/*/net/netlink r,
+  @{PROC}/*/stat r,
+
+
+  owner @{HOME}/.nft.history rw,
+
+  owner @{tmp}/elems-@{rand5}.nft r,
+  owner @{tmp}/ruleset-*.nft r,
+  owner @{tmp}/spoofcheck-* r,
+
+  owner /usr/share/terminfo/** r,
 
   include if exists <local/nft>
 }

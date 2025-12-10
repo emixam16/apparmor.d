@@ -17,6 +17,9 @@ profile konsole @{exec_path} flags=(attach_disconnected,mediate_deleted) {
   include <abstractions/kde-strict>
   include <abstractions/nameservice-strict>
 
+  capability fsetid,
+  capability sys_ptrace,
+
   ptrace (read),
 
   signal (send) set=(hup),
@@ -33,6 +36,7 @@ profile konsole @{exec_path} flags=(attach_disconnected,mediate_deleted) {
 
   # Some CLI program can be launched directly from KDE
   @{bin}/btop                rPUx,
+  @{bin}/gnutrue             mrix,
   @{bin}/htop                 rPx,
   @{bin}/micro               rPUx,
   @{bin}/nvtop                rPx,
@@ -49,6 +53,9 @@ profile konsole @{exec_path} flags=(attach_disconnected,mediate_deleted) {
   /etc/xdg/ui/ui_standards.rc r,
 
   owner @{HOME}/@{XDG_SSH_DIR}/config r,
+
+  owner @{HOME}/.local/state/konsolestaterc l,
+  owner @{HOME}/.local/state/ w,
 
   owner @{user_config_dirs}/#@{int} rwl,
   owner @{user_config_dirs}/breezerc r,
@@ -76,6 +83,9 @@ profile konsole @{exec_path} flags=(attach_disconnected,mediate_deleted) {
 
   owner @{tmp}/#@{int} rw,
   owner @{tmp}/konsole.@{rand6} rw,
+  owner @{tmp}/xvfb-run.*/Xauthority r,
+
+  owner /usr/local/lib/libapparmor.so{,*} mr,
 
   owner @{sys}/fs/cgroup/user.slice/user-@{uid}.slice/user@@{uid}.service/app.slice/app-org.kde.konsole-@{int}.scope/** rw,
 

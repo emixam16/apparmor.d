@@ -21,12 +21,16 @@ profile libvirt-dbus @{exec_path} {
        member=Introspect
        peer=(name=@{busname}, label=gnome-shell),
 
+  signal receive set=term peer=pgrep,
+
   @{exec_path} mr,
 
   @{sbin}/libvirtd  rPx,
   @{bin}/virtqemud  rPx,
 
   /usr/share/dbus-1/interfaces/org.libvirt.*.xml r,
+
+  /usr/local/lib/libapparmor.so{,*} mr,
 
   owner @{user_cache_dirs}/libvirt/libvirtd.lock rwk,
 

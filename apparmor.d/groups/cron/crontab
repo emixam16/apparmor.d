@@ -36,10 +36,16 @@ profile crontab @{exec_path} {
   @{etc_ro}/environment r,
   @{etc_ro}/security/*.conf r,
   /etc/cron.{allow,deny} r,
+  /etc/nsswitch.conf r,
   /etc/pam.d/* r,
+  /etc/passwd r,
 
   /var/spool/cron/ r,
   /var/spool/cron/** rw,
+
+  / r,
+
+  @{lib}/systemd-cron/crontab_setgid mrix,
 
   owner @{user_cache_dirs}/crontab/crontab.bak rw,
 

@@ -44,6 +44,10 @@ profile child-dpkg flags=(attach_disconnected) {
   /var/lib/dpkg/triggers/Lock rw,
   /var/lib/dpkg/updates/* rw,
   /var/log/dpkg.log rw,
+  owner @{tmp}/tmp*/apport.log w,
+  owner /var/log/apport.log w,
+  /var/log/apport.log w,
+
 
   # file_inherit
   /tmp/#@{int} rw,

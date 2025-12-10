@@ -12,7 +12,7 @@ profile pgrep @{exec_path} flags=(attach_disconnected) {
   include <abstractions/app/pgrep>
   include <abstractions/nameservice-strict>
 
-  signal send set=term,
+  signal send set=(term,hup),
 
   @{exec_path} mr,
 

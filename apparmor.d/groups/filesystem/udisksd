@@ -151,6 +151,8 @@ profile udisksd @{exec_path} flags=(attach_disconnected) {
   owner @{PROC}/@{pid}/mountinfo r,
   owner @{PROC}/@{pid}/mounts r,
 
+  /var/lib/udisks2/{,**} rw,
+
   /dev/loop-control rw,
   /dev/null.@{int} rw,
 

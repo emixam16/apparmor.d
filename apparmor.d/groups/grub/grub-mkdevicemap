@@ -20,6 +20,8 @@ profile grub-mkdevicemap @{exec_path} {
 
   @{PROC}/devices r,
 
+  owner /boot/grub/device.map w,
+
   /dev/mapper/control rw,
 
   include if exists <local/grub-mkdevicemap>

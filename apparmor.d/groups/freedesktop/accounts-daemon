@@ -35,6 +35,10 @@ profile accounts-daemon @{exec_path} flags=(attach_disconnected) {
   @{sbin}/userdel    rPx,
   @{sbin}/usermod    rPx,
   @{bin}/locale     rPUx,
+  @{bin}/dash       mrpx,
+
+  owner @{run}/userdb/r-*.user{,-privileged} r,
+
 
   /usr/share/language-tools/language-validate   rPx,
   /usr/share/language-tools/set-language-helper rPUx,

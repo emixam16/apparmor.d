@@ -17,6 +17,8 @@ profile virtlogd @{exec_path} flags=(attach_disconnected) {
 
   @{exec_path} mr,
 
+  owner /usr/local/lib/libapparmor.so{,*} mr,
+
   /etc/libvirt/virtlogd.conf r,
 
   /var/log/libvirt/qemu/*.log rw,
@@ -27,6 +29,8 @@ profile virtlogd @{exec_path} flags=(attach_disconnected) {
   owner @{run}/user/@{uid}/libvirt/common/system.token rwk,
   owner @{run}/user/@{uid}/libvirt/virtlogd.pid rwk,
   owner @{run}/user/@{uid}/libvirt/virtlogd* w,
+
+  owner @{run}/systemd/notify w,
 
   @{att}@{run}/systemd/inhibit/@{int}.ref rw,
 

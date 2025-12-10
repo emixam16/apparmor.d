@@ -32,6 +32,7 @@ profile apport @{exec_path} flags=(attach_disconnected) {
   @{bin}/dpkg-divert  rPx -> apport//&child-dpkg-divert,
   @{bin}/gdbus        rix,
   @{bin}/md5sum       rix,
+  @{bin}/systemd-detect-virt r,
 
   /usr/share/apport/{,**} r,
 
@@ -40,6 +41,11 @@ profile apport @{exec_path} flags=(attach_disconnected) {
   /etc/dpkg/dpkg.cfg r,
   /etc/dpkg/dpkg.cfg.d/{,**} r,
 
+  @{tmp}/tmp@{rand8}/** rw,
+  owner @{bin}/systemd-detect-virt r,
+
+
+  /var/lib/dpkg/arch r,
   /var/lib/dpkg/info/ r,
   /var/lib/dpkg/info/*.list r,
   /var/lib/dpkg/info/*.md5sums r,
@@ -53,7 +59,7 @@ profile apport @{exec_path} flags=(attach_disconnected) {
         /var/crash/ rw,
         /var/crash/*.@{uid}.crash rw,
   owner /var/cache/apt/pkgcache.bin.@{rand6} rw,
-  owner /var/log/apport.log rw,
+  /var/log/apport.log rw,
 
   /{run,var}/log/journal/ r,
   /{run,var}/log/journal/@{hex32}/ r,
@@ -73,6 +79,9 @@ profile apport @{exec_path} flags=(attach_disconnected) {
         @{PROC}/@{pids}/fdinfo/@{int} r,
         @{PROC}/@{pids}/stat r,
         @{PROC}/@{pids}/status r,
+        @{PROC}/*/attr/current r,
+        @{PROC}/*/{cmdline,maps} r,
+        /var/cache/apt/* rw,
         @{PROC}/sys/fs/suid_dumpable w,
         @{PROC}/sys/kernel/core_pattern w,
         @{PROC}/sys/kernel/core_pipe_limit w,

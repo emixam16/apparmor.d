@@ -16,6 +16,15 @@ profile groups @{exec_path} {
   @{exec_path} mr,
 
   /dev/tty@{u8} rw,
+  /etc/nsswitch.conf r,
+  /etc/passwd r,
+  owner @{PROC}/@{pid}/status r,
+  owner @{lib}/@{multiarch}/libnss_*.so* mr,
+  owner @{lib}/@{multiarch}/libnss_compat.so.* mr,
+  owner @{lib}/@{multiarch}/libnss_files.so.* mr,
+  owner @{lib}/@{multiarch}/libnss_nis.so.* mr,
+  owner @{lib}/@{multiarch}/libnss_systemd.so.* mr,
+
 
   include if exists <local/groups>
 }

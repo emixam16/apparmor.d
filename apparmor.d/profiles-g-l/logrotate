@@ -79,6 +79,9 @@ profile logrotate @{exec_path} flags=(attach_disconnected) {
 
     capability net_admin,
     capability sys_ptrace,
+    capability sys_resource,
+
+    @{bin}/systemd-tty-ask-password-agent mrpx,
 
     ptrace read peer=@{p_systemd},
 

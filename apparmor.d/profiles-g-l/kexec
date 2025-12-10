@@ -12,6 +12,7 @@ profile kexec @{exec_path} flags=(complain) {
   include <abstractions/base>
 
   capability sys_boot,
+  capability sys_admin,
 
   @{exec_path} mr,
 
@@ -23,6 +24,7 @@ profile kexec @{exec_path} flags=(complain) {
 
         @{PROC}/cmdline r,
   owner @{PROC}/@{pid}/mounts r,
+  owner @{PROC}/iomem r,
 
   /dev/fb[0-9] r,
 

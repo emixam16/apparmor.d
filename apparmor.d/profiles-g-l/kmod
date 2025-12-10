@@ -17,10 +17,14 @@ profile kmod @{exec_path} flags=(attach_disconnected) {
   capability dac_override,
   capability mknod,
   capability net_admin,
+  capability sys_admin,
+  capability sys_chroot,
   capability sys_module,
   capability syslog,
 
   network inet raw,
+
+  ptrace read,
 
   @{exec_path} mrix,
 
@@ -28,6 +32,9 @@ profile kmod @{exec_path} flags=(attach_disconnected) {
   @{bin}/basename    rix,
   @{bin}/false       rix,
   @{bin}/id          rix,
+  @{bin}/kmod       mrix,
+  @{bin}/nsenter    mrix,
+  @{bin}/sed        mrix,
   @{sbin}/sysctl     rCx -> sysctl,
   @{bin}/true        rix,
 
@@ -37,9 +44,14 @@ profile kmod @{exec_path} flags=(attach_disconnected) {
 
   /tmp/**/*.ko{,.zst} r,
   /usr/src/*/*.ko r,
+  owner /var/lib/snapd/lib/gl{,32}/ r,
+  owner /var/lib/snapd/void/ r,
   /var/lib/dkms/**/module/*.ko r,
   /var/lib/dpkg/triggers/* r,
   /var/lib/ebtables/lock r,
+
+  owner @{lib}/locale/* r,
+  owner @{lib}/@{multiarch}/** mr,
 
   owner /var/tmp/*modules*/{,**} rw,
   owner /var/tmp/dracut.*/{,**} rw,
@@ -61,6 +73,20 @@ profile kmod @{exec_path} flags=(attach_disconnected) {
   owner @{run}/tmpfiles.d/static-nodes.conf w,
 
   @{sys}/module/{,**} r,
+  @{run}/udev/data/* r,
+  /sys/module/ r,
+  /sys/module/** r,
+  owner @{PROC}/@{pid}/mounts r,
+
+  owner /meta/snap.yaml r,
+
+  owner / r,
+
+  owner /snap/lxd/*/lib/ r,
+  owner /snap/lxd/*/lib/@{multiarch}/ceph/ r,
+  owner /snap/lxd/*/lib/@{multiarch}/ r,
+  owner /snap/lxd/*/zfs-*.*/lib/ r,
+
 
   /dev/tty@{u8} rw,
 

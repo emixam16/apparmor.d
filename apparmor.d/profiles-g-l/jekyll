@@ -25,6 +25,10 @@ profile jekyll @{exec_path} {
 
   /usr/share/ruby-addressable/unicode.data r,
 
+  /etc/ssl/certs/ca-certificates.crt r,
+
+  owner /var/lib/gems/*.*.*/bundler.lock w,
+
   owner @{user_projects_dirs}/{,**} r,
   owner @{user_projects_dirs}/**/_site/{,**} rw,
   owner @{user_projects_dirs}/**/.sass-cache/** rw,

@@ -16,6 +16,8 @@ profile glib-compile-resources @{exec_path} {
 
   /tmp/resource-* rw,
 
+  owner @{tmp}/.* rw,
+
   owner @{PROC}/@{pid}/fd/ r,
 
   include if exists <local/glib-compile-resources>

@@ -14,12 +14,15 @@ profile ip @{exec_path} flags=(attach_disconnected) {
   include <abstractions/nameservice-strict>
 
   capability bpf,
+  capability dac_read_search,
   capability net_admin,
   capability sys_admin,
   capability sys_module,
   capability sys_ptrace,
 
   network netlink raw,
+  network (create) inet6 dgram,
+  network (create) inet dgram,
 
   mount fstype=sysfs                                -> @{sys},
   mount options=(rw bind)                         / -> @{run}/netns/*,
@@ -31,6 +34,13 @@ profile ip @{exec_path} flags=(attach_disconnected) {
 
   umount @{run}/netns/*,
   umount @{sys},
+
+  owner /etc/gnutls/config r,
+  owner /etc/group r,
+  owner /etc/nsswitch.conf r,
+  owner /etc/passwd r,
+  owner /etc/protocols r,
+  owner /etc/services r,
 
   ptrace read,
 
@@ -44,6 +54,33 @@ profile ip @{exec_path} flags=(attach_disconnected) {
   @{bin}/firewall-cmd  rPx,
   @{sbin}/firewalld    rPx,
   @{sbin}/nft          rPx,
+
+  @{bin}/dash mix,
+  @{bin}/gettext rix,
+  @{bin}/kmod mrix,
+  @{bin}/locale rix,
+  @{bin}/ping mrix,
+  @{bin}/tempfile rix,
+  @{bin}/xz rix,
+  @{bin}/base64 rix,
+
+  @{bin}/firewall-cmd mrix,
+  @{bin}/gnurm mrix,
+  @{bin}/kmod px,
+  @{bin}/ping px,
+  @{bin}/python*.* mrix,
+  @{bin}/sed mrix,
+  @{bin}/taskset mrix,
+  @{bin}/time mrix,
+  @{bin}/which.debianutils px,
+  @{bin}/echo mrix,
+  @{bin}/expr mrix,
+  @{bin}/mkdir mrix,
+  @{bin}/timeout mrix,
+  @{bin}/truncate mrix,
+  /usr/sbin/ipset mrix,
+  /usr/sbin/sysctl px,
+  /usr/sbin/xtables-nft-multi mrix,
 
   @{att}/ r,
 
@@ -61,6 +98,30 @@ profile ip @{exec_path} flags=(attach_disconnected) {
   owner @{PROC}/@{pid}/net/dev_mcast r,
   owner @{PROC}/@{pid}/net/igmp{,6} r,
   owner @{PROC}/sys/net/ipv{4,6}/route/flush w,
+  owner @{PROC}/*/{cmdline,maps,mounts,status} r,,
+  owner @{PROC}/*/fdinfo/*,
+  owner @{PROC}/ r,
+  owner @{PROC}/sys/kernel/cap_last_cap r,
+  owner @{PROC}/sys/net/core/somaxconn r,
+  owner @{PROC}/sys/net/fan/IFLA_VXLAN_FAN_MAP r,
+  owner @{PROC}/sys/vm/overcommit_memory r,
+
+  owner @{lib}/locale/* r,
+  owner @{lib}/python*/**/ r,
+
+  owner @{lib}/ r,
+  owner @{lib}/@{multiarch}/ r,
+  owner @{lib}/@{multiarch}/**.so{,.*} mr,
+
+  owner /usr/local/lib/libapparmor.so{,.*} mr,
+  owner /usr/sbin/sysctl mr,
+
+  / r,
+
+  owner /snap/lxd/*/lib/lib*.so{,*} mr,
+
+  owner @{sys}/kernel/mm/transparent_hugepage/hpage_pmd_size r,
+  owner @{sys}/module/apparmor/parameters/enabled r,
 
   /dev/tty@{u8} rw,
 

@@ -30,6 +30,13 @@ profile gdisk @{exec_path} {
   # For disk images
   owner @{user_img_dirs}/{,**} rwk,
 
+  owner @{PROC}/@{pid}/fd/ r,
+  owner @{PROC}/@{pid}/mounts r,
+  /dev/tty rw,
+  owner @{PROC}/@{pid}/stat r,
+
+  owner @{tmp}/tmp.* rw,
+
   include if exists <local/gdisk>
 }
 

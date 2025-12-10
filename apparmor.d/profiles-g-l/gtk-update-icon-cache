@@ -23,6 +23,9 @@ profile gtk-update-icon-cache @{exec_path} flags=(attach_disconnected) {
   owner @{user_share_dirs}/** r,
   owner @{user_share_dirs}/**/.icon-theme.cache rw,
   owner @{user_share_dirs}/**/icon-theme.cache rw,
+  owner @{PROC}/@{pid}/fd/ r,
+
+  owner @{tmp}/flatpak-test-*/home/share/flatpak/exports/share/icons/hicolor/** rw,
 
   include if exists <local/gtk-update-icon-cache>
 }

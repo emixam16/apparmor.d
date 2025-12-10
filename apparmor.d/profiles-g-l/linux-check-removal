@@ -17,6 +17,10 @@ profile linux-check-removal @{exec_path} {
   @{bin}/stty       rix,
 
   /etc/shadow r,
+  /etc/login.defs r,
+  /etc/nsswitch.conf r,
+  /etc/passwd r,
+
 
   include if exists <local/linux-check-removal>
 }

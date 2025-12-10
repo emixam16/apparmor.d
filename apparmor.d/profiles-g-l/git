@@ -60,6 +60,7 @@ profile git @{exec_path} flags=(attach_disconnected) {
   @{bin}/tar         rix,
   @{bin}/true        rix,
   @{bin}/uname       rix,
+  @{bin}/unix2dos mrix,
   @{bin}/wc          rix,
   @{bin}/whoami      rix,
 
@@ -71,6 +72,8 @@ profile git @{exec_path} flags=(attach_disconnected) {
   @{lib}/code/extensions/git/dist/askpass.sh     rPx,
   @{lib}/code/extensions/git/dist/git-editor.sh  rPx,
   /usr/share/aurpublish/*.hook                   rPx,
+
+  /usr/local/lib/python*.*/dist-packages/ r,
 
   @{bin}/gpg{,2}         rCx -> gpg,
   @{bin}/ssh             rCx -> &git//ssh,
@@ -96,6 +99,9 @@ profile git @{exec_path} flags=(attach_disconnected) {
   owner @{HOME}/.netrc r,
   owner @{user_config_dirs}/git/{,*} rw,
 
+  owner /home/**/.git/config r,
+  owner /home/**/.git/HEAD r,
+
   owner @{HOME}/@{XDG_SSH_DIR}/{,*} r,
   owner @{run}/user/@{uid}/keyring/ssh rw,
 
@@ -103,6 +109,7 @@ profile git @{exec_path} flags=(attach_disconnected) {
   owner @{tmp}/git-commit-msg-.txt rw,         # For android studio
   owner @{tmp}/git-difftool.*/{,**} rw,        # For diffs
   owner @{tmp}/git-index-private@{int} rw,
+  owner @{tmp}/** rw,
 
   owner @{run}/user/@{uid}/gcr/ssh rw,
 
@@ -110,8 +117,12 @@ profile git @{exec_path} flags=(attach_disconnected) {
   deny owner @{user_share_dirs}/gvfs-metadata/* r,
   deny owner @{user_share_dirs}/vulkan/** r,
   deny owner @{user_share_dirs}/zed/**/data.mdb rw,
+  owner @{HOME}/.local/share/nvim/swap//** rw,
+  owner @{user_cache_dirs}/nvim/swap//** rw,
+
   deny /usr/share/nvidia/nvidia-application-profiles-* r,
   deny /dev/shm/.org.chromium.Chromium.@{rand6} rw,
+  owner @{PROC}/@{pid}/fd/ r,
 
   #aa:only test
   owner /tmp/*tests@{word8}/{,**} rwlk,

@@ -17,7 +17,7 @@ profile lsinitramfs @{exec_path} {
   @{bin}/cat           rix,
   @{bin}/getopt        rix,
 
-  @{bin}/unmkinitramfs rPx,
+  @{bin}/unmkinitramfs mrPx,
 
   include if exists <local/lsinitramfs>
 }

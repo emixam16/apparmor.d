@@ -25,11 +25,17 @@ profile landscape-sysinfo @{exec_path} {
 
   @{exec_path} mr,
 
-  @{bin}/who rPx,
+  @{bin}/who mrPx,
 
   @{lib}/@{python_name}/**/__pycache__/ w,
   @{lib}/@{python_name}/**/__pycache__/**.pyc w,
   @{lib}/@{python_name}/**/__pycache__/**.pyc.@{u64} w,
+
+  owner @{lib}/@{multiarch}/libeatmydata.so.* mr,
+  owner @{lib}/@{multiarch}/libgcc_s.so.* mr,
+  owner @{lib}/@{multiarch}/libm.so.* mr,
+  owner @{lib}/@{multiarch}/libpcre*.so.* mr,
+  owner @{lib}/@{multiarch}/libselinux.so.* mr,
 
   /var/log/landscape/{,**} rw,
 

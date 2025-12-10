@@ -19,8 +19,13 @@ profile gamemoded @{exec_path} flags=(attach_disconnected) {
   @{bin}/pkexec Cx -> pkexec,
   @{lib}/gamemode/gpuclockctl Cx -> pkexec,
 
+  unix (bind) type=stream addr=@*/bus/gamemoded/user,
+
+  / r,
   /etc/ r,
   /etc/gamemode.ini r,
+
+  /usr/share/gamemode/gamemode.ini r,
 
   owner @{HOME}/ r,
   owner @{user_config_dirs}/ r,
@@ -37,6 +42,8 @@ profile gamemoded @{exec_path} flags=(attach_disconnected) {
   owner @{PROC}/@{pid}/fdinfo/ r,
   owner @{PROC}/@{pid}/fdinfo/@{int} r,
   owner @{PROC}/@{pid}/task/ r,
+  owner @{PROC}/@{pid}/fd/ r,
+  owner @{PROC}/@{pid}/mounts r,
 
   profile pkexec flags=(attach_disconnected) {
     include <abstractions/base>
@@ -62,6 +69,8 @@ profile gamemoded @{exec_path} flags=(attach_disconnected) {
     @{etc_ro}/security/limits.d/ r,
     @{etc_ro}/security/limits.d/@{int}-gamemode.conf r,
     /etc/shells r,
+
+    owner @{run}/dbus/system_bus_socket rw,
 
     @{sys}/devices/@{pci}/power_dpm_force_performance_level rw,
     @{sys}/devices/@{pci}/vendor r,

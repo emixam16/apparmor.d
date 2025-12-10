@@ -23,8 +23,14 @@ profile gvfsd-sftp @{exec_path} {
 
   @{bin}/ssh  rPx,
 
+  unix (receive, send) type=stream,
+
   owner @{run}/user/@{uid}/gvfsd-sftp/ rw,
   owner @{run}/user/@{uid}/gvfsd/socket-@{rand8} w,
+
+  owner @{HOME}@{run}/gvfsd-sftp/ w,
+  owner @{HOME}@{run}/gvfsd/socket-@{rand8} w,
+
 
   owner @{PROC}/@{pid}/fd/ r,
 

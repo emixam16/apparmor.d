@@ -30,6 +30,8 @@ profile gvfs-gphoto2-volume-monitor @{exec_path} {
   @{sys}/class/scsi_generic/ r,
   @{sys}/devices/**/uevent r,
 
+  owner @{tmp}/umockdev.*/event4 w,
+
   owner @{PROC}/@{pid}/mountinfo r,
   owner @{PROC}/@{pid}/mounts r,
 

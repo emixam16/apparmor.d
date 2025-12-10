@@ -46,6 +46,9 @@ profile gvfsd @{exec_path} {
   owner @{run}/user/@{uid}/gvfs/ rw,
   owner @{run}/user/@{uid}/gvfsd/ rw,
 
+  owner @{HOME}@{run}/gvfsd/ w,
+  owner @{tmp}/umockdev.*/ioctl/_default rw,
+
   owner @{PROC}/@{pid}/fd/ r,
 
   profile pkexec {

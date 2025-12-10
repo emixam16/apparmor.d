@@ -17,6 +17,7 @@ profile gvfsd-fuse @{exec_path} {
   capability sys_admin,
 
   mount fstype={fuse,fuse.*} -> @{run}/user/@{uid}/gvfs/,
+  mount fstype=fuse.gvfsd-fuse options=(nodev, nosuid, rw) gvfsd-fuse,
 
   unix (send,receive) type=stream addr=none peer=(label=gvfsd-fuse//fusermount),
 
@@ -26,6 +27,8 @@ profile gvfsd-fuse @{exec_path} {
 
   owner @{run}/user/@{uid}/gvfsd-fuse/ rw,
   owner @{run}/user/@{uid}/gvfsd/socket-@{rand8} w,
+
+  owner @{tmp}/umockdev.*/ioctl/_default rw,
 
   @{PROC}/sys/fs/pipe-max-size r,
 
@@ -38,9 +41,12 @@ profile gvfsd-fuse @{exec_path} {
     capability setuid,
 
     mount fstype={fuse,fuse.*} -> @{run}/user/@{uid}/gvfs/,
+    mount fstype=fuse.gvfsd-fuse options=(nodev, nosuid, rw) gvfsd-fuse,
     umount @{run}/user/@{uid}/**/,
 
     unix (send,receive) type=stream addr=none peer=(label=gvfsd-fuse),
+
+    owner /etc/mtab.fuselock rwk,
 
     include if exists <local/gvfsd-fuse_fusermount>
   }

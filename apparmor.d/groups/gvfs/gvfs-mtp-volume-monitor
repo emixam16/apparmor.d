@@ -26,6 +26,8 @@ profile gvfs-mtp-volume-monitor @{exec_path} {
 
   @{sys}/devices/**/uevent r,
 
+  owner @{tmp}/umockdev.*/event4 w,
+
   include if exists <local/gvfs-mtp-volume-monitor>
 }
 

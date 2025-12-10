@@ -22,7 +22,12 @@ profile gvfsd-ftp @{exec_path} {
   network inet6 stream,
   network netlink raw,
 
+  unix (receive, send) type=stream,
+
   @{exec_path} mr,
+
+  owner @{HOME}@{run}/dconf/user rw,
+  owner @{HOME}@{run}/gvfsd/socket-@{rand8} w,
 
   include if exists <local/gvfsd-ftp>
 }

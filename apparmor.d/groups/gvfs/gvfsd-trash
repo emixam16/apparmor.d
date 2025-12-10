@@ -35,6 +35,7 @@ profile gvfsd-trash @{exec_path} {
 
   owner @{PROC}/@{pid}/mountinfo r,
   owner @{PROC}/@{pid}/mounts r,
+  @{PROC}/cmdline r,
 
   include if exists <local/gvfsd-trash>
 }

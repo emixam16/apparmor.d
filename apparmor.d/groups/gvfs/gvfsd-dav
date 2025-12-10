@@ -28,6 +28,11 @@ profile gvfsd-dav @{exec_path} flags=(attach_disconnected) {
 
   @{exec_path} mr,
 
+  unix (receive, send) type=stream,
+
+  owner @{HOME}@{run}/dconf/{,user} rw,
+  owner @{HOME}@{run}/gvfsd/socket-@{rand8} w,
+
   owner @{run}/user/@{uid}/gvfsd/ rw,
   owner @{run}/user/@{uid}/gvfsd/socket-@{rand8} rw,
 

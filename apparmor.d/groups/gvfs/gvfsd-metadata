@@ -29,6 +29,9 @@ profile gvfsd-metadata @{exec_path} {
   owner @{user_share_dirs}/ w,
   owner @{user_share_dirs}/gvfs-metadata/{,*} rw,
   owner @{HOME}/.var/app/*/data/gvfs-metadata/{,*} rw,
+  owner @{HOME}/gvfs_test@{rand8}/data/gvfs-metadata/{,*} rw,
+
+  owner @{tmp}/umockdev.*/event* w,
 
   include if exists <local/gvfsd-metadata>
 }

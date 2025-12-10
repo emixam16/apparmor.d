@@ -17,9 +17,19 @@ profile gvfsd-archive @{exec_path} {
 
   @{exec_path} mr,
 
+  unix (receive, send) type=stream,
+
   owner @{HOME}/**.{tar,tar.gz,zip} r,
   owner @{MOUNTS}/**.{TAR,TAR.GZ,ZIP} r,
   owner @{HOME}/**.{tar,tar.gz,zip} r,
+
+  owner @{HOME}@{run}/gvfsd/socket-* w,
+
+  owner @{PROC}/*/mountinfo r,
+  @{PROC}/cmdline r,
+
+  owner @{tmp}/*/*.{iso,tar.bz2,tar.gz,tar,zip} r,
+  owner @{tmp}/umockdev.*/ioctl/_default rw,
 
   owner @{user_img_dirs}/{,**} r,
 

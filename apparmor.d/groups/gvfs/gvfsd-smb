@@ -21,9 +21,21 @@ profile gvfsd-smb @{exec_path} {
   network inet dgram,
   network inet6 dgram,
 
+  unix (receive, send) type=stream,
+
   @{exec_path} mr,
 
   /etc/samba/smb.conf r,
+  /etc/hosts r,
+  /etc/nsswitch.conf r,
+  /etc/passwd r,
+
+  owner @{HOME}/.cache/samba/gencache.tdb rwk,
+  owner @{HOME}/.cache/samba/ w,
+  owner @{HOME}/.cache/ w,
+  owner @{HOME}@{run}/dconf/user rw,
+
+  owner @{HOME}@{run}/gvfsd/socket-@{rand8} w,
 
   owner @{run}/user/@{uid}/gvfsd/socket-@{rand8} rw,
 

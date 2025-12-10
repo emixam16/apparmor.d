@@ -74,7 +74,7 @@ profile gjs @{exec_path} flags=(attach_disconnected) {
   # gnome-extension-ding
   @{sh_path}                  rix,
   @{bin}/env                  rix,
-  @{bin}/true                 rix,
+  @{bin}/{gnu,}true                 rix,
   @{bin}/gnome-control-center  Px,
   @{bin}/nautilus              Px,
 
@@ -116,6 +116,15 @@ profile gjs @{exec_path} flags=(attach_disconnected) {
   owner @{PROC}/@{pid}/stat r,
   owner @{PROC}/@{pid}/task/ r,
   owner @{PROC}/@{pid}/task/@{tid}/stat r,
+
+  owner @{tmp}/dh-xdg-rundir-@{rand8}/** w,
+  owner @{tmp}/gnome-shell-time-limits-manager-test-@{rand6}.json rw,
+
+  owner @{tmp}/gnome-shell.unit-fileUtils.*/** rw,
+
+  owner @{tmp}/.goutputstream-* rw,
+  owner @{tmp}/xvfb-run.*/Xauthority r,
+
 
   /dev/ r,
   /dev/dri/ r,

@@ -29,6 +29,11 @@ profile gnome-session @{exec_path} flags=(attach_disconnected) {
        member=Introspect
        peer=(name=@{busname}, label=gnome-shell),
 
+  dbus send bus=session
+       path=/org/freedesktop/DBus
+       interface=org.freedesktop.DBus
+       member=UpdateActivationEnvironment,
+
   @{exec_path} mrix,
 
   @{shells_path}               rix,

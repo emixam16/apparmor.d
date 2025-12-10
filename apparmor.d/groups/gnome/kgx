@@ -47,6 +47,8 @@ profile kgx @{exec_path} {
 
   /dev/ptmx rw,
 
+  /etc/machine-id r,
+
   include if exists <local/kgx>
 }
 

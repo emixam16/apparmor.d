@@ -21,6 +21,11 @@ profile gnome-session-init-worker @{exec_path} flags=(attach_disconnected)  {
 
   owner @{run}/user/@{uid}/gnome-session-leader-fifo w,
 
+  dbus send bus=session
+       path=/org/freedesktop/systemd1
+       interface=org.freedesktop.systemd1.Manager
+       member={GetUnit,ResetFailed,StartUnit,UnsetAndSetEnvironment},
+
   include if exists <local/gnome-session-init-worker>
 }
 

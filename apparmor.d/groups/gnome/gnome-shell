@@ -52,6 +52,8 @@ profile gnome-shell @{exec_path} flags=(attach_disconnected,mediate_deleted) {
   unix (send,receive) type=stream addr=none peer=(label=xkbcomp),
   unix (send,receive) type=stream addr=none peer=(label=xwayland),
 
+  @{tmp}/xvfb-run.*/Xauthority r,
+
   # Owned by gnome-shell
 
   #aa:dbus own bus=session name=org.gnome.keyring.SystemPrompter

@@ -21,6 +21,8 @@ profile mutter-x11-frames @{exec_path} flags=(attach_disconnected) {
 
   @{exec_path} mr,
 
+  /usr/share/mutter-*/tests/gschemas.compiled r,
+
   owner @{gdm_cache_dirs}//fontconfig/ rw,
   owner @{gdm_cache_dirs}/fontconfig/@{hex32}-*.cache-?{,.NEW,.LCK,.TMP-@{rand6}} rwl,
 

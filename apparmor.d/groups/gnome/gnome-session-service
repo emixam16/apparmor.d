@@ -28,6 +28,9 @@ profile gnome-session-service @{exec_path} flags=(attach_disconnected) {
        interface=org.freedesktop.DBus.Introspectable
        member=Introspect
        peer=(name=@{busname}, label=gnome-shell),
+  dbus send bus=session path=/org/freedesktop/systemd1
+       interface=org.freedesktop.systemd1.Manager
+       member=SetEnvironment,
 
   @{exec_path} mr,
 

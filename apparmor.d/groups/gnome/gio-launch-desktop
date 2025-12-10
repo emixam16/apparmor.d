@@ -29,6 +29,10 @@ profile gio-launch-desktop @{exec_path} flags=(attach_disconnected) {
 
   @{exec_path} mr,
 
+  unix (receive, send) type=stream,
+
+  /etc/fstab r,
+
   @{bin}/gnome-terminal     rPUx,
   @{lib}/gio-launch-desktop  rix,
   @{lib}/*/** rPx,
@@ -39,8 +43,11 @@ profile gio-launch-desktop @{exec_path} flags=(attach_disconnected) {
   owner @{user_share_dirs}/gvfs-metadata/{,*} r,
 
   owner @{tmp}/wl-copy-buffer-@{rand6}/stdin r,
+  owner @{tmp}/*/folder/desktop.entry r,
 
   @{run}/mount/utab r,
+
+  @{sys}/devices/**/ r,
 
   owner @{PROC}/@{pid}/fd/ r,
   owner @{PROC}/@{pid}/mountinfo r,

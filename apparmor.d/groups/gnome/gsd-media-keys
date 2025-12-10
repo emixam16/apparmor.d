@@ -64,6 +64,8 @@ profile gsd-media-keys @{exec_path} flags=(attach_disconnected) {
         @{PROC}/1/cgroup r,
   owner @{PROC}/@{pid}/cgroup r,
 
+  /usr/local/lib/libapparmor.so{,*} r,
+
   include if exists <local/gsd-media-keys>
 }
 

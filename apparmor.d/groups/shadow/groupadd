@@ -15,6 +15,7 @@ profile groupadd @{exec_path} flags=(attach_disconnected) {
 
   capability audit_write,
   capability chown,
+  capability dac_read_search,
   capability dac_override,
   capability fsetid,
 
@@ -45,6 +46,8 @@ profile groupadd @{exec_path} flags=(attach_disconnected) {
   /var/lib/extrausers/gshadow- w,
   /var/lib/extrausers/gshadow.lock wl -> /var/lib/extrausers/gshadow.@{pid},
   /var/lib/extrausers/gshadow+ rw,
+
+  owner @{run}/userdb/ r,
 
   include if exists <local/groupadd>
 }

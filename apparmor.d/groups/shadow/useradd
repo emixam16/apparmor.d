@@ -45,6 +45,7 @@ profile useradd @{exec_path} flags=(attach_disconnected) {
   /etc/subuid.lock  wl -> /etc/subuid.@{pid},
 
   /var/lib/extrausers/*.lock wl -> /var/lib/extrausers/*.@{pid},
+  /var/lib/*/{,*} rwl,
 
   # A process first uses lckpwdf() to lock the lock file, thereby gaining exclusive rights to
   # modify the /etc/passwd or /etc/shadow password database.
@@ -57,7 +58,6 @@ profile useradd @{exec_path} flags=(attach_disconnected) {
   @{HOME}/ rw,
   @{HOME}/** wl,
   @{HOME}/**/ r,
-  /var/lib/*/{,*} rw,
   /etc/skel/{,.**} r,
 
   profile pam_tally2 {

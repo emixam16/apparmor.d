@@ -31,8 +31,22 @@ profile usermod @{exec_path} flags=(attach_disconnected) {
   @{bin}/cat  rix,
   @{bin}/nscd rix,
 
+  /usr/sbin/usermod.distrib mrix,
+
+  owner @{lib}/locale/* r,
+  owner @{lib}/@{multiarch}/gconv/gconv-modules.cache r,
+  owner @{lib}/@{multiarch}/libacl.so.* mr,
+  owner @{lib}/@{multiarch}/libaudit.so.* mr,
+  owner @{lib}/@{multiarch}/libbz*.so.* mr,
+  owner @{lib}/@{multiarch}/libcap-ng.so.* mr,
+  owner @{lib}/@{multiarch}/libpcre*.so.* mr,
+  owner @{lib}/@{multiarch}/libselinux.so.* mr,
+  owner @{lib}/@{multiarch}/libsemanage.so.* mr,
+  owner @{lib}/@{multiarch}/libsepol.so.* mr,
+
   @{etc_ro}/login.defs r,
   /etc/subuid r,
+  /etc/nsswitch.conf r,
 
   /etc/{passwd,shadow,gshadow,group} rw,
   /etc/{passwd,shadow,gshadow,group}.@{pid} w,
@@ -50,9 +64,16 @@ profile usermod @{exec_path} flags=(attach_disconnected) {
 
   # To create and move user dirs
   @{HOME}/{,**}    rw,
+
+  owner @{PROC}/*/loginuid r,
+  owner @{PROC}/sys/kernel/{ngroups_max,cap_last_cap} r,
+
+  /                r,
   /var/            r,
   /var/lib/        r,
   /var/lib/*/{,**} rwl,
+
+  owner @{run}/accountsservice-integration-test.log w,
 
   @{PROC}/ r,
   @{PROC}/@{pids}/task/ r,

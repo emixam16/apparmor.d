@@ -15,7 +15,13 @@ profile apt-config @{exec_path} {
 
   @{exec_path} mr,
 
-  @{bin}/dpkg rPx -> child-dpkg,
+  @{bin}/dpkg mrPx -> child-dpkg,
+  @{bin}/dash mrix,
+  @{bin}/faked-sysv mrix,
+  @{bin}/fakeroot-sysv mrix,
+  @{bin}/getopt mrix,
+  @{bin}/sed mrix,
+  @{bin}/cut mrix,
 
   owner @{tmp}/tmp*/apt.conf r,
 

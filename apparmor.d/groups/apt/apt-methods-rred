@@ -46,6 +46,8 @@ profile apt-methods-rred @{exec_path} {
   owner /var/lib/apt/lists/* rw,
   owner /var/lib/apt/lists/partial/* rw,
 
+  owner @{tmp}/tmp.*/** r,
+
   # For package building
   @{user_build_dirs}/** rwkl -> @{user_build_dirs}/**,
 

@@ -40,6 +40,12 @@ profile apt-methods-cdrom @{exec_path} {
 
   # file_inherit
   owner /dev/tty@{u8} rw,
+  owner @{tmp}/tmp.@{rand10}{,/{,**}} r,
+
+  @{bin}/dash mrix,
+  @{bin}/gnumv mrix,
+
+  owner @{PROC}/*/fd/ r,
 
   include if exists <local/apt-methods-cdrom>
 }

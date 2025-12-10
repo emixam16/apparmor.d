@@ -43,6 +43,8 @@ profile apt-methods-file @{exec_path} {
 
   owner /var/lib/apt/lists/auxfiles/* rw,
   owner /var/lib/apt/lists/partial/* rw,
+  owner @{tmp}/apt-auxfiles-@{rand6}/* w,
+
 
   /var/log/cron-apt/temp w,
 

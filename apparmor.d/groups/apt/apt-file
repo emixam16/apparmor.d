@@ -17,6 +17,8 @@ profile apt-file @{exec_path} {
 
   @{bin}/fgrep          rix,
   @{bin}/{,e}grep       rix,
+  @{bin}/printf mrix,
+  @{bin}/sed            mrix,
   @{bin}/xargs          rix,
   @{lib}/apt/apt-helper rix,
 
@@ -25,8 +27,21 @@ profile apt-file @{exec_path} {
 
   /etc/apt/apt-file.conf r,
 
+  @{lib}/locale/* r,
+
+  @{lib}/@{multiarch}/gconv/gconv-modules.cache r,
+  @{lib}/@{multiarch}/libacl.so.* mr,
+  @{lib}/@{multiarch}/libgcc_s.so.* mr,
+  @{lib}/@{multiarch}/libm.so.* mr,
+  @{lib}/@{multiarch}/libpcre2-*.so.*mr,
+  @{lib}/@{multiarch}/libselinux.so.* mr,
+
+
   # For shell pwd
   /root/ r,
+  owner @{tmp}/* rw,
+  @{bin}/sed mrix,
+  @{bin}/printf mrix,
 
   # file_inherit
   /var/log/cron-apt/temp w,

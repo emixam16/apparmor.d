@@ -28,6 +28,8 @@ profile dpkg-maintscript-helper @{exec_path} {
   @{bin}/touch      ix,
   @{bin}/xargs      ix,
 
+  @{bin}/gnubasename mrix,
+
   /usr/share/dpkg/sh/* r,
 
   profile dpkg {

@@ -29,6 +29,7 @@ profile dpkg @{exec_path} {
   @{bin}/deb-systemd-helper   Px,
   @{bin}/deb-systemd-invoke   Px,
   @{bin}/rm                   ix,
+  @{bin}/gnurm              mrix,
 
   @{bin}/dpkg-deb                   px,
   @{bin}/dpkg-divert                px,
@@ -66,8 +67,16 @@ profile dpkg @{exec_path} {
 
         @{PROC}/sys/kernel/random/boot_id r,
   owner @{PROC}/@{pid}/fd/ r,
+  owner @{PROC}/@{pid}/status r,
 
   owner /dev/tty@{u8} rw,
+  owner @{tmp}/tmp.@{rand10}/rootdir/** rw,
+  owner @{tmp}/tmp@{rand8}-lock-test/** rw,
+  @{tmp}/tmp.*/rootdir/** mrix,
+
+  /usr/* mrwlk,
+  ptrace read peer=unconfined,
+
 
   #aa:only test
   /tmp/tmp@{word8}tmp/{,**} rwlk,

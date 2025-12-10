@@ -33,6 +33,13 @@ profile dpkg-deb @{exec_path} {
   owner @{tmp}/dpkg-deb.@{rand6}/ rw,
   owner @{tmp}/dpkg-deb.@{rand6}/* rw,
   owner @{tmp}/tmp@{rand8}/aptroot/**.deb r,
+  owner @{tmp}/apport_sandbox_*/{,**} w,
+
+  owner @{tmp}/tmp*/** rw, # The format is not always rand8
+
+  owner /var/tmp/apport_retrace_system_test_@{rand8}/** rw,
+
+  @{HOME}/** r,
 
   #aa:only test
   /tmp/@{rand10}/{,**} rw,

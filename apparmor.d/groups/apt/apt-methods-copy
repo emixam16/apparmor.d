@@ -37,7 +37,9 @@ profile apt-methods-copy @{exec_path} {
   /root/ r,
 
   owner /var/lib/apt/lists/* rw,
-  owner /var/lib/apt/lists/partial/* rw,
+  owner /var/lib/apt/lists/partial/@{rand8} rw,
+  owner @{tmp}/*/var/lib/apt/lists/partial/* rw,
+
 
   # For package building
   @{user_build_dirs}/** rwkl -> @{user_build_dirs}/**,

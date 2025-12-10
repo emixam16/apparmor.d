@@ -16,6 +16,8 @@ profile apt-methods-http @{exec_path} flags=(attach_disconnected) {
 
   capability setgid,
   capability setuid,
+  capability dac_override,
+  capability dac_read_search,
 
   network inet dgram,
   network inet6 dgram,
@@ -27,6 +29,8 @@ profile apt-methods-http @{exec_path} flags=(attach_disconnected) {
   signal receive peer=@{p_packagekitd},
   signal receive peer=apt-get,
   signal receive peer=apt-helper,
+  signal receive set=int peer=apt-helper,
+
   signal receive peer=apt,
   signal receive peer=aptitude,
   signal receive peer=role_*,
@@ -86,6 +90,14 @@ profile apt-methods-http @{exec_path} flags=(attach_disconnected) {
   @{PROC}/@{pid}/cgroup r,
 
   owner /dev/tty@{u8} rw,
+
+  owner @{tmp}/apt-auxfiles-@{rand6}/** rw,
+  owner @{tmp}/autopkgtest.@{rand6}/** rw,
+  owner @{tmp}/*/partial/canary-file.txt rw,
+  owner @{tmp}/*/stampdir/partial/canary-file.txt rw,
+  owner @{tmp}/tmp@{rand10}/** rw,
+
+  owner /var/tmp/apport_retrace_system_tests_@{rand8}/** rw,
 
   #aa;only test
   owner /tmp/tmp@{word8}/{,**} rwlk,

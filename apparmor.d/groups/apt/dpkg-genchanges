@@ -23,6 +23,8 @@ profile dpkg-genchanges @{exec_path} flags=(complain) {
 
   /etc/dpkg/origins/* r,
 
+  owner @{tmp}/tmp.@{rand10}/incoming/** r,
+
   # For package building
   owner @{user_build_dirs}/** rw,
 

@@ -38,6 +38,9 @@ profile reportbug @{exec_path} {
   @{bin}/md5sum           rix,
   @{bin}/readlink         rix,
   @{bin}/stty             rix,
+  @{bin}/python3.* ix,
+  @{lib}/python3.*/{,*/} r,
+
   /usr/share/reportbug/handle_bugscript rix,
   /usr/share/bug/reportbug/script rix,
 
@@ -61,6 +64,20 @@ profile reportbug @{exec_path} {
   @{lib}/@{python_name}/dist-packages/pylocales/locales.db rk,
 
   /usr/share/bug/*/{control,presubj} r,
+
+  owner @{tmp}/* rw,
+
+  @{PROC}/sys/vm/overcommit_memory r,
+
+
+  @{lib}/ r,
+  @{lib}/@{multiarch}/libexpat.so.* mr,
+  @{lib}/@{multiarch}/libm.so.* mr,
+  @{lib}/@{multiarch}/libz.so.* mr,
+
+  /usr/share/bug/reportbug/ r,
+  /usr/share/bug/reportbug/script mrix,
+  /usr/share/terminfo/** r,
 
   #aa:lint ignore=too-wide
   /etc/** r,

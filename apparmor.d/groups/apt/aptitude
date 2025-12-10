@@ -166,6 +166,8 @@ profile aptitude @{exec_path} flags=(complain) {
   # file_inherit
   /var/log/cron-apt/temp w,
 
+  owner @{tmp}/apt-auxfiles-@{rand6}/{,*} w,
+
 
   profile pager {
     include <abstractions/base>

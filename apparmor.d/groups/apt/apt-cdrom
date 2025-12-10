@@ -18,6 +18,28 @@ profile apt-cdrom @{exec_path} flags=(complain) {
   @{exec_path} mr,
 
   @{bin}/dpkg        rPx -> child-dpkg,
+  @{bin}/dash mrix,
+  @{bin}/gnumv mrix,
+  @{bin}/gpgv-sq mrix,
+
+  @{lib}/@{multiarch}/libbz*.so.1 mr,
+  @{lib}/@{multiarch}/libgcc_s.so.* mr,
+  @{lib}/@{multiarch}/libgmp.so.* mr,
+  @{lib}/@{multiarch}/libhogweed.so.* mr,
+  @{lib}/@{multiarch}/libm.so.* mr,
+  @{lib}/@{multiarch}/libnettle.so.* mr,
+  @{lib}/@{multiarch}/libsqlite*.so.* mr,
+
+
+  owner @{tmp}/apt.* rw,
+  owner @{tmp}/tmp.* r,
+
+  /etc/localtime r,
+
+  /etc/nsswitch.conf r,
+  /etc/passwd r,
+  / r,
+
   @{bin}/mount       rCx -> mount,
   @{bin}/umount      rCx -> umount,
 

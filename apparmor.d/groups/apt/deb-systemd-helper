@@ -23,6 +23,9 @@ profile deb-systemd-helper @{exec_path} {
   /var/lib/systemd/deb-systemd-helper-masked/{,**} rw,
   /var/lib/systemd/deb-systemd-user-helper-enabled/{,**} rw,
 
+  owner @{tmp}/** rw,
+
+
   profile systemctl {
     include <abstractions/base>
     include <abstractions/app/systemctl>
@@ -40,6 +43,8 @@ profile deb-systemd-helper @{exec_path} {
     /etc/systemd/user/ r,
     /etc/systemd/user/*.wants/ rw,
     /etc/systemd/user/*.wants/* rw,
+
+    owner /etc/systemd/system/*.service.requires/* w,
 
     include if exists <local/deb-systemd-helper_systemctl>
   }

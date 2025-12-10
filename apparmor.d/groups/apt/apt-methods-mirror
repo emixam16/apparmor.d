@@ -40,6 +40,7 @@ profile apt-methods-mirror @{exec_path} {
   owner /var/lib/apt/lists/* rw,
   owner /var/lib/apt/lists/partial/* rw,
 
+  owner @{tmp}/tmp.@{rand6}/** r,
 
   # For package building
   @{user_build_dirs}/** rwkl -> @{user_build_dirs}/**,

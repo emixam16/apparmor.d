@@ -19,6 +19,7 @@ profile apt-methods-gpgv @{exec_path} {
   # unprivileged user/group (_apt/nogroup).
   capability setgid,
   capability setuid,
+  capability dac_read_search,
 
   signal receive peer=apt-get,
   signal receive peer=apt,
@@ -79,6 +80,8 @@ profile apt-methods-gpgv @{exec_path} {
   owner /var/lib/apt/lists/{,**} rw,
   owner /var/lib/apt/lists/partial/* rw,
 
+  owner /var/tmp/apport_retrace_system_tests_@{rand8}/** r
+,
   # For package building
   @{user_build_dirs}/** rwkl -> @{user_build_dirs}/**,
 
@@ -87,6 +90,10 @@ profile apt-methods-gpgv @{exec_path} {
   owner @{tmp}/apt-key-gpghome.*/** rwkl -> /tmp/apt-key-gpghome.*/**,
   owner @{tmp}/apt.{conf,sig,data}.* rw,
   owner @{tmp}/apt.@{rand6}.gpg rw,
+  owner @{tmp}/tmp@{rand10}/** r,
+
+  owner @{tmp}/*/etc/apt/trusted.gpg.d/glatzor.asc r,
+  owner @{tmp}/*/etc/apt/trusted.gpg.d r,
 
   @{PROC}/@{pid}/fd/ r,
 

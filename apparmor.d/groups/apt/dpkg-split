@@ -29,6 +29,10 @@ profile dpkg-split @{exec_path} {
         @{user_pkg_dirs}/** r,
   owner @{user_build_dirs}/** rwkl -> @{user_build_dirs}/**,
 
+  @{HOME}/*.deb r,
+
+  owner @{tmp}/tmp.*/incoming/** r,
+
   #aa:only test
   /tmp/@{rand10}/{,**} rw,
 

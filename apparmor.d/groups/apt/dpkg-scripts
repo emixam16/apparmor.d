@@ -20,6 +20,7 @@ profile dpkg-scripts @{exec_path} {
   capability fsetid,
   capability setgid,
   capability setuid,
+  capability sys_admin,
 
   @{exec_path} mrix,
 
@@ -35,10 +36,23 @@ profile dpkg-scripts @{exec_path} {
   @{bin}/gzip                                     ix,
   @{bin}/helpztags                                ix,
   @{bin}/setpriv                                  ix,
-  @{bin}/tput                                     ix,
   @{bin}/zcat                                     ix,
   @{lib}/ubuntu-advantage/cloud-id-shim.sh        ix,
   @{lib}/ubuntu-advantage/postinst-migrations.sh  ix,
+
+
+  @{bin}/cat mrix,
+  @{bin}/dash rix,
+  @{bin}/expr mrix,
+  @{bin}/getopt mrix,
+  @{bin}/grep mrix,
+  @{bin}/head mrix,
+  @{bin}/mawk mrix,
+  @{bin}/readlink mrix,
+  @{bin}/run-parts mrix,
+  @{bin}/sleep mrix,
+  @{bin}/systemctl mrix,
+  @{bin}/tput mrix,
 
   @{bin}/dbus-send                                Cx -> bus,
   @{bin}/kmod                                     Cx -> kmod,
@@ -116,6 +130,8 @@ profile dpkg-scripts @{exec_path} {
 
     @{sys}/module/compression r,
 
+    owner /boot/System.map-* r,
+
     include if exists <local/dpkg-scripts_kmod>
   }
 
@@ -133,10 +149,15 @@ profile dpkg-scripts @{exec_path} {
     ptrace read peer=@{p_systemd},
 
     @{bin}/systemd-tty-ask-password-agent  Px,
-    @{lib}/systemd/systemd-sysv-install   PUx,
+    @{lib}/systemd/systemd-sysv-install  mrPUx,
     @{pager_path}                          Px -> child-pager,
 
     /etc/machine-id r,
+    /etc/nsswitch.conf r,
+    /etc/passwd r,
+    /etc/systemd/system/{,*.wants}/ r
+
+    @{bin}/dash mrix,
 
     /var/lib/systemd/catalog/database r,
 
@@ -165,9 +186,11 @@ profile dpkg-scripts @{exec_path} {
     @{coreutils_path}      rix,
     @{sh_path}             rix,
     @{bin}/systemctl       rPx -> dpkg-scripts//systemctl,
+    @{bin}/dash            ix,
 
     /etc/ r,
     /etc/init.d/* r,
+    /etc/init.d/nginx mrix,
     /etc/rc@{c}.d/ r,
     /etc/rc@{c}.d/* rw,
     /etc/rc@{int}.d/ r,
@@ -184,11 +207,16 @@ profile dpkg-scripts @{exec_path} {
     @{sbin}/ldconfig       mrix,
     @{sbin}/ldconfig.real   rix,
 
-    @{bin}/dpkg-trigger     rPx,
+    @{bin}/dpkg-trigger     mrPx,
 
     @{lib}/ r,
+
+    owner /usr/libx32/{,*.so{,*}} r,
     /usr/local/ r,
     /usr/local/lib/ r,
+
+    owner /etc/ld.so.cache w,
+    owner /etc/ld.so.cache~ rw,
 
           /var/cache/ldconfig/ rw,
     owner /var/cache/ldconfig/aux-cache* rw,

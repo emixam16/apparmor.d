@@ -23,6 +23,18 @@ profile apt-helper @{exec_path} {
   @{bin}/systemctl rCx -> systemctl,
   @{lib}/systemd/systemd-networkd-wait-online rPx,
   @{lib}/apt/methods/http Px,
+  @{lib}/apt/methods/file mrpx,
+  @{bin}/date mrix,
+  @{bin}/gnutrue mrix,
+  @{bin}/rev mrix,
+  @{bin}/true mrix,
+
+  owner @{tmp}/tmp.@{rand10}/test.txt.rev r,
+
+  network (connect) inet dgram peer=(ip=127.0.0.53 port=53),
+  network (create) inet dgram,
+  network (send, receive) inet dgram ip=127.0.0.1 peer=(ip=127.0.0.53 port=53),
+  network (setopt) inet dgram,
 
   owner @{PROC}/@{pid}/fd/ r,
 

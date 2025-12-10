@@ -15,7 +15,25 @@ profile apt-cache @{exec_path} {
 
   @{exec_path} mr,
 
-  @{bin}/dpkg rPx -> child-dpkg,
+  @{bin}/dpkg mrPx -> child-dpkg,
+
+  @{bin}/dash mrix,
+  @{bin}/faked-sysv mrix,
+  @{bin}/fakeroot-sysv mrix,
+  @{bin}/getopt mrix,
+  @{bin}/gnutrue mrix,
+  @{bin}/sed mrix,
+  @{bin}/cut mrix,
+  @{bin}/false mrix,
+
+  owner /usr/share/dpkg/varianttable r,
+  owner @{tmp}/tmp.*{,/} r,
+
+  @{lib}/@{multiarch}/libgcc_s.so.* mr,
+  @{lib}/@{multiarch}/libm.so.* mr,
+  @{lib}/@{multiarch}/libpcre*-*.so.* mr,
+  @{lib}/@{multiarch}/libselinux.so.* mr,
+
 
   /var/lib/dbus/machine-id r,
   /etc/machine-id r,

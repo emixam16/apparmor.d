@@ -20,7 +20,9 @@ profile apt-extracttemplates @{exec_path} {
   @{bin}/dpkg rPx -> child-dpkg,
 
   /var/cache/apt/ r,
+  /var/cache/apt/ r,
   /var/cache/apt/** rwk,
+  owner /usr/share/dpkg/varianttable r,
 
   # For package building
   @{user_build_dirs}/** rwkl -> @{user_build_dirs}/**,

@@ -19,6 +19,9 @@ profile dpkg-query @{exec_path} {
   @{pager_path}     rPx -> child-pager,
 
   /var/lib/dpkg/** r,
+  owner @{PROC}/@{pid}/fd/ r,
+  owner @{tmp}/tmp.@{rand10}/rootdir/* r,
+  owner @{tmp}/tmp.@{rand10}/noopchroot.so mr,
 
   # file_inherit
   /tmp/#@{int} rw,

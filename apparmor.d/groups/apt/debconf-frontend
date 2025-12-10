@@ -61,6 +61,9 @@ profile debconf-frontend @{exec_path} flags=(complain) {
   owner @{tmp}/file* w,
   owner @{tmp}/tmp.@{rand10} rw,
   owner @{tmp}/updateppds.@{rand6} rw,
+  owner @{tmp}/config-@{rand8} rwk,
+
+  /var/cache/debconf/* r,
 
   @{HOME}/.Xauthority r,
 

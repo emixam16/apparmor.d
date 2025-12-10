@@ -19,6 +19,8 @@ profile apt-methods-store @{exec_path} {
   # unprivileged user/group (_apt/nogroup).
   capability setgid,
   capability setuid,
+  capability dac_override,
+  capability dac_read_search,
 
   signal receive peer=apt-get,
   signal receive peer=apt,
@@ -55,6 +57,8 @@ profile apt-methods-store @{exec_path} {
 
         /tmp/ r,
   owner @{tmp}/apt-changelog-*/*.changelog{,.*} rw,
+  owner @{tmp}/tmp_@{rand10}/** rw,
+  owner /var/tmp/apport_retrace_system_tests_@{rand8}/** rw,
 
   # file_inherit
   owner /dev/tty@{u8} rw,

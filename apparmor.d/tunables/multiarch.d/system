@@ -59,9 +59,8 @@
 # System Internal
 # ---------------
 
-@{pci_bus}=pci@{hex4}:@{hex2}
+# @{pci_bus} is already defined in tunables/multiarch.d/base
 
-# Shortcut for PCI device
 @{pci_id}=@{hex4}:@{hex2}:@{hex2}.@{h}
 @{pci}=@{pci_bus}/**/
 

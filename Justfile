@@ -345,6 +345,11 @@ check:
 	@bash tests/check.sh
 	@python3 dists/gen-stability --check
 
+# Run the Python unit and regression tests
+[group('linter')]
+test:
+	@python3 -m unittest discover -s tests -p 'test_*.py'
+
 # Generate the man pages
 [group('docs')]
 man:

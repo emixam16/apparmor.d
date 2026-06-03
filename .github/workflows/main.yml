@@ -11,12 +11,18 @@ jobs:
 
       - name: Install linter dependencies
         run: |
+          sudo apt-get update -q
+          sudo apt-get install -y python3-apparmor
           pipx install rust-just
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Run basic profile linter check
         run: |
           just check
+
+      - name: Run unit and regression tests
+        run: |
+          just test
 
   build:
     runs-on: ${{ matrix.os }}

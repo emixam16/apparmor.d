@@ -327,6 +327,7 @@ lint:
 [group('linter')]
 check:
 	@bash tests/check.sh
+	@python3 dists/gen-stability --check
 
 # Generate the man pages
 [group('docs')]

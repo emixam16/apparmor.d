@@ -169,6 +169,7 @@ install-aa-sync:
 	@install -Dm0755 dists/aa-sync {{destdir}}/usr/bin/aa-sync
 	@install -Dm0644 dists/aa-sync.d/aa-sync.conf {{destdir}}/etc/apparmor/aa-sync.conf
 	@install -Dm0644 dists/aa-sync.d/aa-sync.service {{destdir}}/usr/lib/systemd/system/aa-sync.service
+	@install -Dm0644 dists/aa-sync.d/aa-sync.path {{destdir}}/usr/lib/systemd/system/aa-sync.path
 	@install -Dm0644 dists/aa-sync.d/aa-sync-verify.service {{destdir}}/usr/lib/systemd/system/aa-sync-verify.service
 	@install -Dm0644 dists/aa-sync.d/aa-sync-verify.timer {{destdir}}/usr/lib/systemd/system/aa-sync-verify.timer
 

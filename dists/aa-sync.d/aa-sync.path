@@ -1,0 +1,20 @@
+[Unit]
+Description=Re-sync apparmor.d profiles when the package set or config changes
+
+[Path]
+# Package-manager-agnostic trigger: watch each distro's package database and the
+# aa-sync config. Any install/upgrade/remove touches the database, so aa-sync
+# apply recomputes the selection (used INTERSECT mature) and loads/unloads
+# accordingly -- no per-package-manager hook needed. Paths absent on a given
+# distro are simply dormant. apply is idempotent and flock-serialised, so the
+# few extra triggers a multi-step transaction produces are harmless.
+PathModified=/var/lib/dpkg/status
+PathModified=/var/lib/pacman/local
+PathModified=/var/lib/rpm
+PathModified=/usr/lib/sysimage/rpm
+PathChanged=/etc/apparmor/aa-sync.conf
+
+Unit=aa-sync.service
+
+[Install]
+WantedBy=multi-user.target

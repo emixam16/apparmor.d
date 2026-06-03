@@ -7,6 +7,9 @@ systemd-user complain
 sd complain
 sdu complain
 
+# Blocks legitimate dpkg reload paths (found deploying on Ubuntu 24.04)
+apt complain
+
 akonadi_akonotes_resource complain
 akonadi_archivemail_agent complain
 akonadi_birthdays_resource complain

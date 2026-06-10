@@ -286,6 +286,33 @@ build-dpkg: (_ensure_pkgdest)
 	lintian --color always --display-info --pedantic --tag-display-limit 0 || true
 	mv ../{{pkgname}}*.deb {{pkgdest}}/
 
+# Build a standalone test .deb for the runtime-selection deployment: the share
+# tree + index.json under /usr/share/apparmor.d, aa-sync and its units.
+[group('packages')]
+build-dpkg-sync: enforce (_ensure_pkgdest)
+	#!/usr/bin/env bash
+	set -eu -o pipefail
+	umask 022
+	ver="0.1~test$(date +%Y%m%d%H%M)"
+	root=$(mktemp -d /tmp/apparmor.d-sync.XXXXXX)
+	trap 'rm -rf "$root"' EXIT
+	chmod 755 "$root"
+	mkdir -p "$root/usr/share/apparmor.d"
+	cp -a "{{build}}/apparmor.d/." "$root/usr/share/apparmor.d/"
+	chmod -R u=rwX,go=rX "$root/usr/share/apparmor.d"
+	# Abstractions are parsed from the share, not materialised by aa-sync, so
+	# give their px/Px rules the same unconfined fallback here.
+	find "$root/usr/share/apparmor.d/abstractions" -type f -exec \
+		sed -Ei 's/(^|[[:space:],])([rwalkm]*[pP])x([[:space:]]*(,|->))/\1\2ux\3/g' {} +
+	python3 dists/aa-sync --share "$root/usr/share/apparmor.d" \
+		--stability dists/stability.json index --source apparmor.d
+	just build={{build}} destdir="$root" install-aa-sync
+	mkdir -p "$root/DEBIAN"
+	sed "s/@VERSION@/$ver/" dists/aa-sync.d/deb/control > "$root/DEBIAN/control"
+	cp dists/aa-sync.d/deb/conffiles "$root/DEBIAN/conffiles"
+	install -m0755 dists/aa-sync.d/deb/{postinst,prerm,postrm} "$root/DEBIAN/"
+	dpkg-deb --build --root-owner-group "$root" "{{pkgdest}}/apparmor.d-sync_${ver}_all.deb"
+
 # Build the package on OpenSUSE
 [group('packages')]
 build-rpm: (_ensure_pkgdest)

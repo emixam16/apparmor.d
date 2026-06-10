@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "configure" ] && [ -d /run/systemd/system ]; then
+    systemctl daemon-reload
+    systemctl enable aa-sync.service aa-sync.path aa-sync-verify.timer >/dev/null
+    systemctl start aa-sync.path aa-sync-verify.timer
+    # Synchronous first apply: the selected set is loaded when apt returns.
+    systemctl start aa-sync.service
+fi

@@ -1,0 +1,16 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    remove)
+        rm -f /etc/apparmor/aa-sync.disabled
+        ;;
+    purge)
+        rm -f /etc/apparmor/aa-sync.disabled
+        rm -rf /var/lib/apparmor.d
+        ;;
+esac
+
+if [ -d /run/systemd/system ]; then
+    systemctl daemon-reload
+fi

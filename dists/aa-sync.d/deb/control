@@ -1,0 +1,12 @@
+Package: apparmor.d-sync
+Version: @VERSION@
+Section: admin
+Priority: optional
+Architecture: all
+Depends: apparmor, python3, python3-apparmor
+Maintainer: Maxime Bélair <maxime.belair@canonical.com>
+Description: AppArmor profiles with runtime profile-set selection
+ Ships the full apparmor.d profile set read-only under /usr/share/apparmor.d
+ and aa-sync, which selects and loads the subset matching the local policy
+ (stable profiles whose binary is installed, by default). The loaded set is
+ kept in sync on package-manager transactions and checked daily for drift.

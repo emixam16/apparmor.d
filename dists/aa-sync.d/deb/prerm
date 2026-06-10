@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+
+# On removal, unload the managed profiles while their files still exist.
+# `disable` writes the persistent flag too; postrm clears it so a later
+# reinstall starts enabled.
+if [ "$1" = "remove" ]; then
+    if [ -d /run/systemd/system ]; then
+        systemctl stop aa-sync.path aa-sync-verify.timer 2>/dev/null || true
+    fi
+    aa-sync disable || true
+fi

@@ -655,6 +655,22 @@ def select(cfg, index):
     return selected, reasons
 
 
+# Materialisation rewrites
+
+# A perm cluster ending in px/Px, just before ',' or '->'. Paths cannot match:
+# the cluster must start right after whitespace or ','.
+_EXEC_NO_FALLBACK = re.compile(r'(?<=[\s,])([rwalkm]*[pP])x(?=\s*(?:,|->))')
+
+
+def add_exec_fallback(body):
+    """The selected set is not transition-closed: a px/Px rule whose target is
+    not loaded fails the exec (-EACCES, "profile transition not found").
+    Rewrite px->pux / Px->Pux: a loaded target still transitions; an unloaded
+    one runs unconfined -- which is what "not selected" already means for that
+    binary anywhere else. pix/cx/ix need nothing (in-file or fallback)."""
+    return _EXEC_NO_FALLBACK.sub(r'\1ux', body)
+
+
 # Mode: top-level complain-flag injection (debug override only)
 
 def inject_complain(body):
@@ -878,7 +894,7 @@ def do_apply(cfg, args):
     for name in sorted(selected):
         src = pdir / name
         try:
-            body = src.read_text()
+            body = add_exec_fallback(src.read_text())
             if want_complain or _match_any(name, cfg.complain):
                 body, changed = inject_complain(body)
                 if not changed:

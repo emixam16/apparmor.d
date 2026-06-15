@@ -1000,6 +1000,28 @@ def do_explain(cfg, args):
     return EXIT_OK
 
 
+def kernel_drift(cfg, manifest):
+    """Return (missing_names, reason): profiles the manifest says are loaded but
+    the kernel lacks, or (None, reason) when no meaningful comparison is possible.
+    Needs trustworthy names (index.json only; basenames differ from kernel names
+    for *.apparmor.d profiles), an actual load, AppArmor active and not disabled."""
+    if not manifest.get("profiles"):
+        return None, "nothing applied"
+    if not manifest.get("loaded", True):
+        return None, "staged, not loaded (--no-reload)"
+    if not manifest.get("have_names", False):
+        return None, "name metadata unavailable (no index.json)"
+    if is_disabled() or not apparmor_enabled():
+        return None, "disabled / AppArmor inactive"
+    loaded = kernel_loaded_names()
+    if loaded is None:
+        return None, "kernel profile list unreadable (need root)"
+    expected = set()
+    for declared in (manifest.get("names") or {}).values():
+        expected.update(declared)
+    return (expected - loaded), None
+
+
 def do_status(cfg, args):
     manifest = read_manifest(cfg)
     applied = set(manifest.get("profiles", {}))
@@ -1013,6 +1035,12 @@ def do_status(cfg, args):
     print("  applied:   %d profile(s)" % len(applied))
     print("  disabled:  %s" % (is_disabled() or "no"))
     print("  apparmor:  %s" % ("active" if apparmor_enabled() else "NOT active"))
+    missing, why = kernel_drift(cfg, manifest)
+    if missing is None:
+        print("  drift:     n/a (%s)" % why)
+    else:
+        print("  drift:     %s" % ("none" if not missing
+              else "%d expected profile(s) not loaded" % len(missing)))
     return EXIT_OK
 
 
@@ -1025,6 +1053,12 @@ def do_verify(cfg, args):
     if applied != selected:
         warn("config drift -- selection differs from the applied set (+%d/-%d); "
              "run `aa-sync apply`" % (len(selected - applied), len(applied - selected)))
+        return EXIT_DRIFT
+    # kernel drift: manifest vs the actually loaded set.
+    missing, _why = kernel_drift(cfg, manifest)
+    if missing:
+        warn("kernel drift -- %d applied profile(s) not loaded; run `aa-sync apply`"
+             % len(missing))
         return EXIT_DRIFT
     print("aa-sync: config valid; %d profile(s) selected; no drift" % len(selected))
     return EXIT_OK

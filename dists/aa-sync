@@ -11,7 +11,8 @@ staging swapped atomically into active/, manifest.json records the last apply.
 
 Selection gates: stability (stable|testing|disabled, config picks which deploy)
 and mode (no|used|group|all; "used" keeps profiles whose attached binary
-exists). include globs force on, exclude globs force off (exclude wins).
+exists). include globs force on, include_used globs force on when the attached
+binary exists, exclude globs force off (exclude wins).
 
 <share>/index.json (built by `aa-sync index`) carries per-profile name(s),
 attachment(s), stability and group(s). With it, "used"/group selection and drift
@@ -289,7 +290,8 @@ class Config:
     def __init__(self, args):
         cp = configparser.ConfigParser(allow_no_value=True)
         cp.read_dict({
-            "selection": {"mode": "used", "groups": "", "include": "", "exclude": ""},
+            "selection": {"mode": "used", "groups": "", "include": "",
+                          "include_used": "", "exclude": ""},
             "stability": {"stable": "enabled", "testing": "disabled", "disabled": "disabled"},
             "mode": {"default": "enforce", "complain": ""},
             "paths": {k: DEFAULTS[k] for k in ("share", "stock", "state")},
@@ -311,6 +313,7 @@ class Config:
         self.mode = cp["selection"]["mode"].strip()
         self.groups = set(_split(cp["selection"]["groups"]))
         self.include = _split(cp["selection"]["include"])
+        self.include_used = _split(cp["selection"]["include_used"])
         self.exclude = _split(cp["selection"]["exclude"])
         self.enabled_stability = {
             s for s in STABILITIES if cp["stability"].get(s, "disabled").strip() == "enabled"
@@ -646,6 +649,17 @@ def select(cfg, index):
         if _match_any(name, cfg.include) and index[name].stability != "disabled":
             selected.add(name)
             reasons[name] = "force-included"
+    cand = [n for n in index                 # include_used: force on if installed
+            if n not in selected and _match_any(n, cfg.include_used)
+            and index[n].stability != "disabled"]
+    if cand:
+        used = compute_used(cfg, index, cand)
+        for name in cand:
+            if name in used:
+                selected.add(name)
+                reasons[name] = "force-included (binary present)"
+            else:
+                reasons[name] = "include_used: binary not present"
     for name in list(selected):              # exclude: force off (wins)
         if _match_any(name, cfg.exclude):
             selected.discard(name)

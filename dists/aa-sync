@@ -80,6 +80,16 @@ def warn(msg):
     sys.stderr.write("aa-sync: " + msg + "\n")
 
 
+def booted_since(ts):
+    """True if the system booted after `ts` (kernel cannot still hold the
+    profiles a pre-boot apply loaded)."""
+    try:
+        up = float(Path("/proc/uptime").read_text().split()[0])
+    except (OSError, ValueError):
+        return True
+    return time.time() - up > ts
+
+
 # Fast attachment matcher (mirrors aa-show-usage): expand_path_braces handles
 # '/'-bearing alternations, glob_superset turns the rest into a glob, and
 # convert_regexp discards the over-matches.
@@ -679,6 +689,25 @@ def sha256(path):
     return h.hexdigest()
 
 
+def include_tree_hash(cfg):
+    """Aggregate hash of every abstraction/tunable/abi file the parser may
+    include. Profile hashes cannot see include edits, so a change here forces
+    a full reload instead of the incremental one."""
+    h = hashlib.sha256()
+    for base in (cfg.share, cfg.stock):
+        for sub in ("abstractions", "tunables", "abi"):
+            d = base / sub
+            if not d.is_dir():
+                continue
+            for f in sorted(p for p in d.rglob("*") if p.is_file()):
+                h.update(str(f.relative_to(base)).encode())
+                try:
+                    h.update(f.read_bytes())
+                except OSError:
+                    h.update(b"?")
+    return h.hexdigest()
+
+
 def read_manifest(cfg):
     mf = cfg.state / "manifest.json"
     if mf.is_file():
@@ -841,8 +870,9 @@ def do_apply(cfg, args):
     if nxt.exists():
         shutil.rmtree(nxt)
     nxt.mkdir(mode=0o755)
+    inc_hash = include_tree_hash(cfg)
     manifest = {"profiles": {}, "names": {}, "applied_at": int(args.now), "mode": cfg.mode,
-                "have_names": index.have_metadata}
+                "have_names": index.have_metadata, "includes": inc_hash}
     failed = []
     want_complain = cfg.default_mode == "complain"
     for name in sorted(selected):
@@ -863,6 +893,19 @@ def do_apply(cfg, args):
             failed.append((name, str(exc)))
     fsync_dir(nxt)
 
+    # Incremental by default: only profiles whose materialised content changed
+    # are passed to the parser. Everything is (re)loaded on --force, after a
+    # staged-only run, on an include-tree change, after a reboot (the kernel
+    # lost the loaded set) or on detected kernel drift (out-of-band unloads).
+    missing, _why = kernel_drift(cfg, old_manifest)
+    full = (args.force or not old_manifest.get("loaded")
+            or old_manifest.get("includes") != inc_hash
+            or booted_since(old_manifest.get("applied_at", 0))
+            or bool(missing))
+    old_hashes = old_manifest.get("profiles", {})
+    to_load = set(manifest["profiles"]) if full else {
+        n for n, hsh in manifest["profiles"].items() if old_hashes.get(n) != hsh}
+
     # Load from next/ and only swap active/ in once it succeeds, so a parser
     # failure never leaves active/ or the manifest out of sync.
     rc = EXIT_OK
@@ -870,7 +913,7 @@ def do_apply(cfg, args):
     failed_drops = set()
     if loaded:
         prev_names = old_manifest.get("names") if old_manifest.get("have_names") else None
-        rc, failed_drops = load_set(cfg, nxt, active, selected, prev, prev_names)
+        rc, failed_drops = load_set(cfg, nxt, active, selected, prev, prev_names, to_load)
     else:
         print("[apply] reload skipped; %d profile(s) staged" % len(selected))
 
@@ -931,12 +974,16 @@ def _remove_files(cfg, names_files, names_map=None):
     return failed
 
 
-def load_set(cfg, nxt, active, selected, prev, prev_names=None):
-    """Load the staged set from next/, unloading dropped profiles (via their old
-    files in active/). On parser failure, reconcile to the previous set and return
-    EXIT_PARSER. Returns (rc, failed_drops); failed_drops stay in the manifest."""
-    targets = sorted(nxt.glob("*"))
-    if targets:   # empty selection -> nothing to load (avoid a no-arg --replace)
+def load_set(cfg, nxt, active, selected, prev, prev_names=None, to_load=None):
+    """Load the staged profiles in `to_load` (None = everything in next/),
+    unloading dropped profiles (via their old files in active/). On parser
+    failure, reconcile to the previous set and return EXIT_PARSER. Returns
+    (rc, failed_drops); failed_drops stay in the manifest."""
+    if to_load is None:
+        targets = sorted(nxt.glob("*"))
+    else:
+        targets = sorted(nxt / n for n in to_load if (nxt / n).is_file())
+    if targets:   # nothing changed -> nothing to load (avoid a no-arg --replace)
         res = _run(parser_cmd(cfg, "--replace", targets))
         if res.returncode != 0:
             warn("apparmor_parser --replace failed:\n%s" % (res.stderr.strip() or res.stdout.strip()))
@@ -951,8 +998,18 @@ def load_set(cfg, nxt, active, selected, prev, prev_names=None):
     drop = sorted(prev - selected)
     failed = _remove_files(cfg, [(n, active / n) for n in drop],  # old files, pre-swap
                            names_map=prev_names)
-    print("[apply] loaded %d profile(s) in enforce mode%s"
-          % (len(selected), (", removed %d" % (len(drop) - len(failed))) if drop else ""))
+    unchanged = len(selected) - len(targets)
+    msg = "[apply] loaded %d profile(s)" % len(targets)
+    if unchanged:
+        msg += " (%d unchanged)" % unchanged
+    if 0 < len(targets) <= 8:
+        msg += ": " + ", ".join(t.name for t in targets)
+    if drop:
+        removed = [n for n in drop if n not in failed]
+        msg += ", removed %d" % len(removed)
+        if 0 < len(removed) <= 8:
+            msg += " (%s)" % ", ".join(removed)
+    print(msg)
     return EXIT_OK, failed
 
 
@@ -1143,12 +1200,13 @@ def build_argparser():
     p.add_argument("--stock", metavar="DIR", help="stock apparmor tree for includes (default %s)" % DEFAULTS["stock"])
     p.add_argument("--state", metavar="DIR", help="aa-sync state dir (default %s)" % DEFAULTS["state"])
     p.add_argument("--stability", metavar="FILE", help="maturity JSON (default <share>/stability.json)")
-    p.set_defaults(dry_run=False, no_reload=False)
+    p.set_defaults(dry_run=False, no_reload=False, force=False)
     sub = p.add_subparsers(dest="cmd")
 
     ap = sub.add_parser("apply", help="compute the selection and load it (default)")
     ap.add_argument("--dry-run", action="store_true", help="compute and report, change nothing")
     ap.add_argument("--no-reload", action="store_true", help="stage active/ but do not load")
+    ap.add_argument("--force", action="store_true", help="reload all selected profiles, even unchanged ones")
 
     li = sub.add_parser("list", help="list selected (or --available) profiles")
     li.add_argument("--available", action="store_true", help="list all available with stability/groups")

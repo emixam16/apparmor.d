@@ -106,6 +106,11 @@ build-aa-flatpak:
 prebuild: build
 	./{{build}}/prebuild --buildir {{build}} --future
 
+# Generate aa-sync's index.json (build->runtime contract). Run after a prebuild,
+# on a host whose apparmor lib has resolve_variables.
+[group('build')]
+index:
+	@python3 dists/aa-sync --share {{build}}/apparmor.d --stability dists/stability.json index --source apparmor.d
 
 # Prebuild the profiles in FSP mode
 [group('build')]

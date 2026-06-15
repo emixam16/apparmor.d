@@ -531,6 +531,71 @@ def compute_used(cfg, index, candidates):
     return used
 
 
+# Index generation (build-time)
+
+def _group_map(source):
+    """basename -> {group names}, from <source>/groups/<group>/. Best-effort."""
+    out = {}
+    if not source:
+        return out
+    gdir = Path(source) / "groups"
+    if not gdir.is_dir():
+        return out
+    for g in sorted(gdir.iterdir()):
+        if not g.is_dir():
+            continue
+        for _, _, files in os.walk(g):
+            for fn in files:
+                out.setdefault(fn, set()).add(g.name)
+    return out
+
+
+def do_index(cfg, args):
+    """Generate <share>/index.json (stability, declared name(s), resolved
+    attachment(s), group(s)) so runtime selection needs no parsing. Run at build
+    time on a host with a current apparmor lib and ship it beside the profiles."""
+    try:
+        from apparmor.regex import resolve_variables
+    except ImportError:
+        raise SystemExit2(EXIT_ERR, "aa-sync: index generation needs a newer apparmor "
+                          "lib (apparmor.regex.resolve_variables); run it on the build host")
+    pdir = profiles_dir(cfg.share)
+    if not pdir.is_dir():
+        raise SystemExit2(EXIT_CONFIG, "aa-sync: share dir not found: %s" % cfg.share)
+    names = _profile_files(pdir)
+    stab = read_stability(_stability_path(cfg))
+    gmap = _group_map(args.source)
+    attach_by, names_by = _parse_resolved(cfg, names, resolve_variables)
+
+    profiles = {}
+    for nm in names:
+        entry = {"stability": stab.get(nm, "testing"),
+                 "names": sorted(names_by.get(nm, {nm}))}
+        att = sorted(attach_by.get(nm, ()))
+        if att:
+            entry["attach"] = att
+        grp = gmap.get(nm)
+        if grp:
+            entry["group"] = sorted(grp)
+        profiles[nm] = entry
+
+    out = Path(args.out) if args.out else (cfg.share / "index.json")
+    tmp = out.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps({"version": 1, "profiles": profiles},
+                              indent=1, sort_keys=True) + "\n")
+    os.replace(tmp, out)
+    n_stable = sum(1 for nm in names if stab.get(nm) == "stable")
+    n_att = sum(1 for p in profiles.values() if p.get("attach"))
+    print("wrote %s: %d profiles, %d with attachments, %d stable"
+          % (out, len(profiles), n_att, n_stable))
+    blind = sorted(nm for nm in names
+                   if stab.get(nm) == "stable" and not attach_by.get(nm))
+    if blind:
+        warn("%d stable profile(s) have no detectable attachment (never matched by "
+             "mode=used): %s" % (len(blind), ", ".join(blind)))
+    return EXIT_OK
+
+
 # Selection
 
 def _match_any(name, patterns):
@@ -1039,6 +1104,10 @@ def build_argparser():
     ex = sub.add_parser("explain", help="explain why a profile is / isn't selected")
     ex.add_argument("name")
 
+    ix = sub.add_parser("index", help="(build-time) generate index.json from the share")
+    ix.add_argument("--out", metavar="FILE", help="output path (default <share>/index.json)")
+    ix.add_argument("--source", metavar="DIR", help="source apparmor.d tree, for group metadata")
+
     sub.add_parser("diff", help="show pending changes vs the applied set")
     sub.add_parser("status", help="show current state and drift")
     sub.add_parser("verify", help="validate config and detect drift")
@@ -1055,7 +1124,7 @@ _WRITERS = {"apply", "reload", "gc", "disable", "enable"}
 _HANDLERS = {
     "apply": do_apply, "list": do_list, "diff": do_diff, "explain": do_explain,
     "status": do_status, "verify": do_verify, "reload": do_reload, "gc": do_gc,
-    "enable": do_enable, "disable": do_disable,
+    "enable": do_enable, "disable": do_disable, "index": do_index,
 }
 
 

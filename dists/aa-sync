@@ -869,7 +869,8 @@ def do_apply(cfg, args):
     loaded = cfg.reload and not args.no_reload
     failed_drops = set()
     if loaded:
-        rc, failed_drops = load_set(cfg, nxt, active, selected, prev)
+        prev_names = old_manifest.get("names") if old_manifest.get("have_names") else None
+        rc, failed_drops = load_set(cfg, nxt, active, selected, prev, prev_names)
     else:
         print("[apply] reload skipped; %d profile(s) staged" % len(selected))
 
@@ -898,25 +899,39 @@ def do_apply(cfg, args):
     return EXIT_OK
 
 
-def _remove_files(cfg, names_files):
+def _remove_files(cfg, names_files, names_map=None):
     """Unload by passing each FILE to apparmor_parser, so it reads the real
     in-kernel name even when filename != profile name (firefox.apparmor.d ->
-    'firefox'). Returns the names that could not be unloaded (still in kernel)."""
+    'firefox'). Returns the names that could not be unloaded (still in kernel).
+    With names_map (basename -> declared names, index-trustworthy only), an
+    unload that cannot proceed reconciles against the kernel: a profile no
+    longer loaded (e.g. removed out-of-band) is a completed drop, not a
+    failure to keep claiming in the manifest."""
     failed = set()
+
+    def still_loaded(name):
+        if names_map is None:
+            return True   # names not trustworthy -> assume loaded, fail loudly
+        loaded = kernel_loaded_names()
+        if loaded is None:
+            return True
+        return bool(set(names_map.get(name) or [name]) & loaded)
+
     for name, f in names_files:
         if not Path(f).exists():
-            warn("could not unload %s: %s is gone" % (name, f))
-            failed.add(name)
+            if still_loaded(name):
+                warn("could not unload %s: %s is gone" % (name, f))
+                failed.add(name)
             continue
         res = _run(parser_cmd(cfg, "--remove", [f]))
-        if res.returncode != 0:
+        if res.returncode != 0 and still_loaded(name):
             lines = (res.stderr or res.stdout).strip().splitlines()
             warn("could not unload %s: %s" % (name, lines[-1] if lines else "(no parser output)"))
             failed.add(name)
     return failed
 
 
-def load_set(cfg, nxt, active, selected, prev):
+def load_set(cfg, nxt, active, selected, prev, prev_names=None):
     """Load the staged set from next/, unloading dropped profiles (via their old
     files in active/). On parser failure, reconcile to the previous set and return
     EXIT_PARSER. Returns (rc, failed_drops); failed_drops stay in the manifest."""
@@ -934,7 +949,8 @@ def load_set(cfg, nxt, active, selected, prev):
             warn("rolled back to the previously loaded set")
             return EXIT_PARSER, set()
     drop = sorted(prev - selected)
-    failed = _remove_files(cfg, [(n, active / n) for n in drop])  # old files, pre-swap
+    failed = _remove_files(cfg, [(n, active / n) for n in drop],  # old files, pre-swap
+                           names_map=prev_names)
     print("[apply] loaded %d profile(s) in enforce mode%s"
           % (len(selected), (", removed %d" % (len(drop) - len(failed))) if drop else ""))
     return EXIT_OK, failed
@@ -1102,8 +1118,10 @@ def do_disable(cfg, args):
     os.chmod(flag, 0o644)
     if apparmor_enabled():
         active = cfg.state / "active"
+        manifest = read_manifest(cfg)
         # Unload by FILE (parser reads the real profile name), not basename.
-        _remove_files(cfg, [(n, active / n) for n in sorted(read_manifest(cfg).get("profiles", {}))])
+        _remove_files(cfg, [(n, active / n) for n in sorted(manifest.get("profiles", {}))],
+                      names_map=manifest.get("names") if manifest.get("have_names") else None)
     print("aa-sync: disabled (%s); managed profiles unloaded" % flag)
     return EXIT_OK
 

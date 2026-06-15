@@ -1,0 +1,1085 @@
+#! /usr/bin/python3
+# SPDX-License-Identifier: GPL-2.0-only
+
+"""
+aa-sync -- materialise and load the selected subset of apparmor.d profiles.
+
+Profiles ship read-only under <share> (default /usr/share/apparmor.d); aa-sync
+selects a subset per /etc/apparmor/aa-sync.conf and owns the loaded set under
+<state> (default /var/lib/apparmor.d): active/ is the loaded set, next/ is
+staging swapped atomically into active/, manifest.json records the last apply.
+
+Selection gates: stability (stable|testing|disabled, config picks which deploy)
+and mode (no|used|group|all; "used" keeps profiles whose attached binary
+exists). include globs force on, exclude globs force off (exclude wins).
+
+<share>/index.json (built by `aa-sync index`) carries per-profile name(s),
+attachment(s), stability and group(s). With it, "used"/group selection and drift
+need no parsing; it is REQUIRED for mode=used on libs predating
+apparmor.regex.resolve_variables (e.g. Ubuntu 24.04). Without it aa-sync parses
+the share tree instead (stability.json is then required), group mode is
+unavailable, and drift is basename-based.
+"""
+
+import argparse
+import configparser
+import ctypes
+import ctypes.util
+import errno
+import fnmatch
+import glob
+import hashlib
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+from pathlib import Path
+
+try:
+    from apparmor import aa
+    from apparmor.aare import convert_regexp
+except ImportError as exc:  # pragma: no cover - environment problem
+    sys.stderr.write("aa-sync: the apparmor python library is required: %s\n" % exc)
+    sys.exit(2)
+# apparmor.regex.resolve_variables (absent on e.g. Ubuntu 24.04) is imported
+# lazily so aa-sync still runs on older libs when index.json is present.
+
+# Exit codes
+EXIT_OK = 0
+EXIT_ERR = 1
+EXIT_CONFIG = 2      # bad config / invocation / environment
+EXIT_PARTIAL = 4     # some files failed to materialise (state consistent)
+EXIT_PARSER = 5      # apparmor_parser failed; previous set restored
+EXIT_LOCK = 6        # could not take the lock
+EXIT_DRIFT = 7       # verify: applied state does not match config
+
+STABILITIES = ("stable", "testing", "disabled")
+STABILITY_SCHEMA = 1   # expected dists/stability.json "version"
+SECURITYFS = "/sys/kernel/security/apparmor"
+KERNEL_PROFILES = SECURITYFS + "/profiles"
+
+# Top-level share entries that are never profiles.
+_NON_PROFILE = {"abstractions", "tunables", "abi", "disable", "groups",
+                "mappings", "namespaces", "force-complain", "cache",
+                "index.json", "stability.json", "local"}
+
+DEFAULTS = {
+    "share": "/usr/share/apparmor.d",
+    "stock": "/etc/apparmor.d",
+    "state": "/var/lib/apparmor.d",
+    "config": "/etc/apparmor/aa-sync.conf",
+    "disabled_flag": "/etc/apparmor/aa-sync.disabled",
+}
+
+
+def warn(msg):
+    sys.stderr.write("aa-sync: " + msg + "\n")
+
+
+# Fast attachment matcher (mirrors aa-show-usage): expand_path_braces handles
+# '/'-bearing alternations, glob_superset turns the rest into a glob, and
+# convert_regexp discards the over-matches.
+
+try:
+    from apparmor.regex import expand_path_braces
+except ImportError:
+    # Vendored copy of apparmor.regex.expand_path_braces, not yet in any
+    # apparmor release. TODO: keep it in sync with upstream and drop the
+    # fallback once the lib function is available on most supported systems.
+    from apparmor.common import AppArmorException
+
+    def expand_path_braces(pattern, max_path=1000):
+        """Expand only brace alternations containing a '/'; these change the path
+        depth (e.g. @{bin}=/{,usr/}bin) so a single glob cannot express them.
+        Within-segment braces are left untouched (the caller turns them into a glob
+        wildcard or regex). Returns a set of path-shape variants."""
+        i = pattern.find('{')
+        while i != -1:
+            # Find the '}' that closes the '{' at index i.
+            # When the loop breaks, j holds the index of that matching '}'.
+            depth = 0
+            for j in range(i, len(pattern)):
+                if pattern[j] == '{':
+                    depth += 1
+                elif pattern[j] == '}':
+                    depth -= 1
+                    if depth == 0:
+                        break
+            else:
+                break  # unbalanced; leave the rest untouched
+
+            # Split the brace body pattern[i+1:j] on its top-level commas into the
+            # list of alternatives, remembering whether any of them contains a '/'.
+            # TODO: '\,' is wrongly treated as a separator.
+            alts = []
+            cur = ''
+            nested = 0  # depth of braces nested inside this pattern
+            has_slash = False
+            for ch in pattern[i + 1:j]:
+                if ch == ',' and nested == 0:
+                    alts.append(cur)
+                    cur = ''
+                else:
+                    if ch == '{':
+                        nested += 1
+                    elif ch == '}':
+                        nested -= 1
+                    elif ch == '/':
+                        has_slash = True
+                    cur += ch
+            alts.append(cur)
+
+            if has_slash:
+                # A '/' in an alternative can change the path depth: recurse on it.
+                variants = set()
+                for alt in alts:
+                    variants |= expand_path_braces(pattern[:i] + alt + pattern[j + 1:], max_path)
+                    if len(variants) > max_path:
+                        raise AppArmorException('Pattern %s expands to more than %d '
+                                                'path variants. Please clean it up.'
+                                                % (pattern, max_path))
+                return variants
+            i = pattern.find('{', j + 1)  # within-segment brace: skip, look further
+        return {pattern}
+
+
+def glob_superset(pattern):
+    """A glob matching a superset: each within-segment brace group becomes '*'.
+    The exact regex discards the over-matches afterwards."""
+    out, i = [], 0
+    while i < len(pattern):
+        if pattern[i] != '{':
+            out.append(pattern[i])
+            i += 1
+            continue
+        depth = 0
+        for j in range(i, len(pattern)):
+            if pattern[j] == '{':
+                depth += 1
+            elif pattern[j] == '}':
+                depth -= 1
+                if depth == 0:
+                    break
+        else:
+            out.append(pattern[i:])
+            break
+        out.append('*')
+        i = j + 1
+    return ''.join(out)
+
+
+def has_matching_file(pattern):
+    """First existing path the attachment matches (following symlinks), or None."""
+    try:
+        regex = re.compile(convert_regexp(pattern))
+    except Exception:
+        return None
+    for variant in expand_path_braces(pattern):
+        try:
+            it = glob.iglob(glob_superset(variant), recursive=True)
+        except (ValueError, OSError):
+            continue
+        for path in it:
+            if not regex.match(path):
+                continue
+            # Follow symlinks: a usrmerged or update-alternatives target is still
+            # confined; only dangling symlinks should be skipped.
+            if not os.path.exists(path):
+                continue
+            return path
+    return None
+
+
+# renameat2(RENAME_EXCHANGE) -- atomic directory swap
+
+_RENAME_EXCHANGE = 2
+_AT_FDCWD = -100
+_libc = None  # None = not probed, False = no renameat2, else the CDLL
+
+
+def _renameat2():
+    global _libc
+    if _libc is None:
+        lib = ctypes.CDLL(ctypes.util.find_library("c") or "libc.so.6", use_errno=True)
+        if hasattr(lib, "renameat2"):
+            lib.renameat2.argtypes = [ctypes.c_int, ctypes.c_char_p,
+                                      ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
+            lib.renameat2.restype = ctypes.c_int
+            _libc = lib
+        else:
+            _libc = False
+    return _libc
+
+
+def _exchange(a, b):
+    """Atomically swap two existing paths. False if RENAME_EXCHANGE is
+    unsupported, so the caller can fall back."""
+    lib = _renameat2()
+    if not lib:
+        return False
+    res = lib.renameat2(_AT_FDCWD, os.fsencode(str(a)),
+                        _AT_FDCWD, os.fsencode(str(b)), _RENAME_EXCHANGE)
+    if res == 0:
+        return True
+    err = ctypes.get_errno()
+    if err in (errno.EINVAL, errno.ENOSYS, errno.ENOTSUP, errno.EOPNOTSUPP):
+        return False
+    raise OSError(err, os.strerror(err))
+
+
+def swap_dirs(active, new):
+    """Make `new` become `active`; the old active ends up at `new`. Atomic when
+    RENAME_EXCHANGE is available, else a 3-way rename (safe under our lock)."""
+    if active.exists() and _exchange(active, new):
+        return
+    if active.exists():
+        old = new.with_name(new.name + ".old")
+        if old.exists():
+            shutil.rmtree(old)
+        os.rename(active, old)
+        os.rename(new, active)
+        os.rename(old, new)
+    else:
+        os.rename(new, active)
+
+
+def fsync_dir(path):
+    """Flush a flat directory and its files so the subsequent rename is durable."""
+    for entry in path.iterdir():
+        if entry.is_file():
+            try:
+                fd = os.open(entry, os.O_RDONLY)
+                try:
+                    os.fsync(fd)
+                finally:
+                    os.close(fd)
+            except OSError:
+                pass
+    try:
+        dfd = os.open(path, os.O_RDONLY)
+        try:
+            os.fsync(dfd)
+        finally:
+            os.close(dfd)
+    except OSError:
+        pass
+
+
+# Configuration
+
+def _split(value):
+    return [t for t in re.split(r"[,\s]+", (value or "").strip()) if t]
+
+
+class Config:
+    def __init__(self, args):
+        cp = configparser.ConfigParser(allow_no_value=True)
+        cp.read_dict({
+            "selection": {"mode": "used", "groups": "", "include": "", "exclude": ""},
+            "stability": {"stable": "enabled", "testing": "disabled", "disabled": "disabled"},
+            "mode": {"default": "enforce", "complain": ""},
+            "paths": {k: DEFAULTS[k] for k in ("share", "stock", "state")},
+            "runtime": {"reload": "true"},
+        })
+        self.path = Path(args.config or DEFAULTS["config"])
+        if self.path.is_file():
+            self._check_perms(self.path)
+            try:
+                cp.read(self.path)
+            except configparser.Error as exc:
+                raise SystemExit2(EXIT_CONFIG, "aa-sync: cannot parse %s: %s" % (self.path, exc))
+
+        self.share = Path(args.share or cp["paths"]["share"])
+        self.stock = Path(args.stock or cp["paths"]["stock"])
+        self.state = Path(args.state or cp["paths"]["state"])
+        self.stability_file = Path(args.stability) if args.stability else None
+
+        self.mode = cp["selection"]["mode"].strip()
+        self.groups = set(_split(cp["selection"]["groups"]))
+        self.include = _split(cp["selection"]["include"])
+        self.exclude = _split(cp["selection"]["exclude"])
+        self.enabled_stability = {
+            s for s in STABILITIES if cp["stability"].get(s, "disabled").strip() == "enabled"
+        }
+        self.default_mode = cp["mode"]["default"].strip()
+        self.complain = _split(cp["mode"]["complain"])
+        try:
+            self.reload = cp["runtime"].getboolean("reload", fallback=True)
+        except ValueError:
+            self.reload = True
+
+    @staticmethod
+    def _check_perms(path):
+        st = path.stat()
+        if st.st_mode & 0o022:
+            raise SystemExit2(EXIT_CONFIG, "aa-sync: %s is group/other-writable; "
+                              "refusing (it controls confinement)" % path)
+        if st.st_uid not in (0, os.geteuid()):
+            raise SystemExit2(EXIT_CONFIG, "aa-sync: %s is owned by uid %d (not root "
+                              "or the current user); refusing" % (path, st.st_uid))
+
+    def validate(self):
+        if self.mode not in ("no", "used", "group", "all"):
+            raise SystemExit2(EXIT_CONFIG, "aa-sync: invalid [selection] mode=%r" % self.mode)
+        if self.mode == "group" and not self.groups:
+            raise SystemExit2(EXIT_CONFIG, "aa-sync: [selection] mode=group requires groups=")
+        if self.default_mode not in ("enforce", "complain"):
+            raise SystemExit2(EXIT_CONFIG, "aa-sync: invalid [mode] default=%r" % self.default_mode)
+
+
+# Index: per-profile metadata
+
+class Profile:
+    __slots__ = ("name", "path", "stability", "groups", "attach", "names")
+
+    def __init__(self, name, path, stability="testing", groups=(), attach=(), names=None):
+        self.name = name
+        self.path = path
+        self.stability = stability
+        self.groups = list(groups)
+        self.attach = list(attach)            # resolved attachment patterns (from index)
+        self.names = list(names or [name])    # profile name(s) the file declares
+
+
+class Index:
+    def __init__(self, profiles, from_index_json):
+        self.profiles = profiles              # {name: Profile}
+        self.have_metadata = from_index_json  # attach/group/names are trustworthy
+
+    def __contains__(self, name):
+        return name in self.profiles
+
+    def __getitem__(self, name):
+        return self.profiles[name]
+
+    def __iter__(self):
+        return iter(self.profiles)
+
+    def __len__(self):
+        return len(self.profiles)
+
+
+def read_stability(path):
+    """profile -> stability, from dists/stability.json. Absent profiles default
+    to 'testing'."""
+    out = {}
+    if not path or not path.is_file():
+        return out
+    try:
+        data = json.loads(path.read_text())
+    except (OSError, ValueError) as exc:
+        raise SystemExit2(EXIT_CONFIG, "aa-sync: cannot read %s: %s" % (path, exc))
+    v = data.get("version")
+    if v is not None and v != STABILITY_SCHEMA:
+        warn("%s schema v%s != expected v%d; regenerate with gen-stability"
+             % (path, v, STABILITY_SCHEMA))
+    for cls in STABILITIES:
+        for name in data.get(cls) or ():
+            out[name] = cls
+    return out
+
+
+def profiles_dir(share):
+    sub = share / "profiles"
+    return sub if sub.is_dir() else share
+
+
+def _profile_files(pdir):
+    return [e.name for e in sorted(pdir.iterdir())
+            if e.is_file() and not e.name.startswith(".") and e.name not in _NON_PROFILE]
+
+
+def _stability_path(cfg):
+    if cfg.stability_file is not None:
+        return cfg.stability_file
+    cand = cfg.share / "stability.json"
+    return cand if cand.is_file() else None
+
+
+def build_index(cfg):
+    """Discover available profiles. Prefers <share>/index.json; otherwise scans
+    the share tree (attach/group/names then unavailable)."""
+    share = cfg.share
+    if not share.is_dir():
+        raise SystemExit2(EXIT_CONFIG, "aa-sync: share dir not found: %s" % share)
+    pdir = profiles_dir(share)
+
+    index_json = share / "index.json"
+    if index_json.is_file():
+        return _index_from_json(index_json, pdir)
+
+    # Fallback: scan + stability manifest only. Without any stability metadata
+    # every profile would default to "testing" and the default config would
+    # silently unload the whole set, so refuse instead.
+    spath = _stability_path(cfg)
+    if spath is None or not spath.is_file():
+        raise SystemExit2(EXIT_CONFIG, "aa-sync: neither index.json nor stability.json "
+                          "found under %s; refusing to select without stability metadata"
+                          % share)
+    stab = read_stability(spath)
+    profiles = {}
+    for name in _profile_files(pdir):
+        profiles[name] = Profile(name, pdir / name, stability=stab.get(name, "testing"))
+    return Index(profiles, from_index_json=False)
+
+
+def _index_from_json(index_json, pdir):
+    try:
+        data = json.loads(index_json.read_text())
+    except (OSError, ValueError) as exc:
+        raise SystemExit2(EXIT_CONFIG, "aa-sync: cannot read %s: %s" % (index_json, exc))
+    profiles = {}
+    for name, meta in (data.get("profiles") or {}).items():
+        meta = meta or {}
+        profiles[name] = Profile(
+            name, pdir / name,
+            stability=meta.get("stability", "testing"),
+            groups=meta.get("group") or (),
+            attach=meta.get("attach") or (),
+            names=meta.get("names") or [name],
+        )
+    return Index(profiles, from_index_json=True)
+
+
+# "used" computation
+
+def make_overlay(cfg, candidates, dest):
+    """Profiledir where every include resolves: stock + share
+    abstractions/tunables/abi, then only the candidate profiles."""
+    if dest.exists():
+        shutil.rmtree(dest)
+    dest.mkdir(parents=True)
+    for sub in ("tunables", "abstractions", "abi"):
+        for base in (cfg.stock, cfg.share):
+            src = base / sub
+            if src.is_dir():
+                shutil.copytree(src, dest / sub, dirs_exist_ok=True,
+                                ignore_dangling_symlinks=True)
+    pdir = profiles_dir(cfg.share)
+    for name in candidates:
+        src = pdir / name
+        if src.is_file():
+            shutil.copy2(src, dest / name)
+    return dest
+
+
+def _parse_resolved(cfg, names, resolve_variables):
+    """Parse an overlay of `names`; return (attach_by, names_by): basename -> set
+    of resolved attachment patterns, basename -> set of declared profile names."""
+    nameset = set(names)
+    attach_by, names_by = {}, {}
+    with tempfile.TemporaryDirectory(prefix="aa-sync.") as tmp:
+        overlay = make_overlay(cfg, names, Path(tmp) / "overlay")
+        aa.init_aa(profiledir=str(overlay))
+        try:
+            aa.read_profiles()
+        except Exception as exc:   # AppArmorBug/Exception are not caught by the lib
+            raise SystemExit2(EXIT_ERR, "aa-sync: failed to parse the share tree: %s" % exc)
+        ap = aa.active_profiles
+        for attach, v in ap.attachments.items():
+            nm = Path(v["f"]).name
+            if nm not in nameset:
+                continue
+            try:
+                var = ap.get_all_merged_variables(
+                    v["f"], aa.include_list_recursive(ap.files[v["f"]], True))
+                resolved = resolve_variables(attach, var)
+            except Exception:
+                resolved = [attach]
+            attach_by.setdefault(nm, set()).update(resolved)
+        for f in ap.files:
+            nm = Path(f).name
+            if nm not in nameset:
+                continue
+            try:
+                decl = ap.profiles_in_file(f)
+            except Exception:
+                decl = []
+            if decl:
+                names_by.setdefault(nm, set()).update(decl)
+    return attach_by, names_by
+
+
+def compute_used(cfg, index, candidates):
+    """Names among `candidates` whose attached binary exists on this host."""
+    used = set()
+    if index.have_metadata:
+        # Fast path: match the attachment paths recorded in index.json.
+        for name in candidates:
+            for pat in index[name].attach:
+                if has_matching_file(pat):
+                    used.add(name)
+                    break
+        return used
+    # Slow path: parse an overlay to recover attachments + variables.
+    try:
+        from apparmor.regex import resolve_variables
+    except ImportError:
+        raise SystemExit2(EXIT_ERR, "aa-sync: mode=used without index.json needs a "
+                          "newer apparmor lib (apparmor.regex.resolve_variables, absent "
+                          "on e.g. Ubuntu 24.04); ship index.json, or use mode=all/group")
+    attach_by, _ = _parse_resolved(cfg, candidates, resolve_variables)
+    for name in candidates:
+        for pat in attach_by.get(name, ()):
+            if has_matching_file(pat):
+                used.add(name)
+                break
+    return used
+
+
+# Selection
+
+def _match_any(name, patterns):
+    return any(fnmatch.fnmatch(name, p) for p in patterns)
+
+
+def select(cfg, index):
+    """Return (selected_names, reasons) where reasons[name] explains the verdict."""
+    reasons = {}
+    eligible = []
+    for name in index:
+        prof = index[name]
+        if prof.stability not in cfg.enabled_stability:
+            reasons[name] = "stability=%s not enabled" % prof.stability
+            continue
+        eligible.append(name)
+
+    if cfg.mode == "no":
+        base = set()
+    elif cfg.mode == "all":
+        base = set(eligible)
+    elif cfg.mode == "group":
+        if not index.have_metadata:
+            warn("mode=group needs index.json (group metadata); nothing matched")
+        base = {n for n in eligible if cfg.groups & set(index[n].groups)}
+    elif cfg.mode == "used":
+        base = compute_used(cfg, index, eligible)
+        for n in eligible:
+            if n not in base:
+                reasons[n] = "binary not present (mode=used)"
+    else:
+        base = set()
+
+    selected = set(base)
+    for name in index:                       # include: force on
+        if name in selected:
+            continue
+        if _match_any(name, cfg.include) and index[name].stability != "disabled":
+            selected.add(name)
+            reasons[name] = "force-included"
+    for name in list(selected):              # exclude: force off (wins)
+        if _match_any(name, cfg.exclude):
+            selected.discard(name)
+            reasons[name] = "force-excluded"
+    for name in selected:
+        reasons.setdefault(name, "selected (mode=%s)" % cfg.mode)
+    return selected, reasons
+
+
+# Mode: top-level complain-flag injection (debug override only)
+
+def inject_complain(body):
+    """Add `flags=(complain)` to the top-level header (first column-0 line ending
+    in '{'); the kernel propagates complain to indented child profiles. changed is
+    False if no single-line header was found, so the caller can warn."""
+    lines = body.splitlines(keepends=True)
+    for idx, line in enumerate(lines):
+        if not line or line[0].isspace() or line.lstrip().startswith("#"):
+            continue
+        code = line.split("#", 1)[0].rstrip()
+        if not code.endswith("{"):
+            continue
+        if "complain" in code:
+            return body, True
+        head = code[:-1].rstrip()
+        m = re.search(r'(flags\s*=\s*\([^)]*\)|\([^)]*\))$', head)
+        if m:
+            head = head[:m.start()] + m.group(1).rstrip(")") + ",complain)"
+        else:
+            head = head + " flags=(complain)"
+        lines[idx] = head + " {\n"
+        return "".join(lines), True
+    return body, False
+
+
+# State: active/, next/, manifest
+
+def sha256(path):
+    h = hashlib.sha256()
+    h.update(path.read_bytes())
+    return h.hexdigest()
+
+
+def read_manifest(cfg):
+    mf = cfg.state / "manifest.json"
+    if mf.is_file():
+        try:
+            return json.loads(mf.read_text())
+        except (OSError, ValueError):
+            pass
+    return {"profiles": {}}
+
+
+def write_manifest(cfg, manifest):
+    mf = cfg.state / "manifest.json"
+    tmp = mf.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(manifest, indent=2, sort_keys=True))
+    os.replace(tmp, mf)
+
+
+def kernel_loaded_names():
+    """Profile names the kernel currently has loaded, children included, or
+    None when the kernel state is unreadable (reading the securityfs profile
+    list needs root)."""
+    names = set()
+    try:
+        for line in Path(KERNEL_PROFILES).read_text().splitlines():
+            n = line.rsplit(" ", 1)[0].strip()   # "name (mode)"
+            if n:
+                names.add(n)
+    except OSError:
+        return None
+    return names
+
+
+# Kill switches / environment
+
+def is_disabled():
+    if os.environ.get("AA_SYNC_DISABLE"):
+        return "AA_SYNC_DISABLE env"
+    if Path(DEFAULTS["disabled_flag"]).exists():
+        return DEFAULTS["disabled_flag"]
+    try:
+        if "apparmor.d=disabled" in Path("/proc/cmdline").read_text().split():
+            return "kernel cmdline apparmor.d=disabled"
+    except OSError:
+        pass
+    return None
+
+
+def apparmor_enabled():
+    return Path(SECURITYFS).is_dir()
+
+
+# Lock
+
+class SystemExit2(SystemExit):
+    def __init__(self, code, msg):
+        sys.stderr.write(msg + "\n")
+        super().__init__(code)
+
+
+class Lock:
+    def __init__(self, cfg, timeout=30):
+        # The lock lives in the state dir aa-sync owns (root-writable in
+        # production, no dependency on /run being writable).
+        self.path = cfg.state / ".aa-sync.lock"
+        self.timeout = timeout
+        self.fd = None
+
+    def __enter__(self):
+        import fcntl
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.fd = os.open(self.path, os.O_RDWR | os.O_CREAT, 0o600)
+        deadline = time.monotonic() + self.timeout
+        while True:
+            try:
+                fcntl.flock(self.fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                return self
+            except OSError:
+                if time.monotonic() > deadline:
+                    os.close(self.fd)
+                    raise SystemExit2(EXIT_LOCK, "aa-sync: could not take lock %s "
+                                      "(another instance running?)" % self.path)
+                time.sleep(0.2)
+
+    def __exit__(self, *exc):
+        if self.fd is not None:
+            os.close(self.fd)
+            self.fd = None
+
+
+# apparmor_parser
+
+# In /sbin or /usr/sbin, which may not be on a daemon's PATH.
+PARSER = shutil.which("apparmor_parser") or "/sbin/apparmor_parser"
+
+
+def parser_cmd(cfg, op, targets):
+    cmd = [PARSER, op]
+    if op in ("--replace", "--add"):
+        cmd += ["--write-cache", "--cache-loc", str(cfg.state / "cache")]
+    cmd += ["-I", str(cfg.share), "-I", str(cfg.stock), "--"]
+    cmd += [str(t) for t in targets]
+    return cmd
+
+
+class _Result:
+    def __init__(self, returncode, stderr):
+        self.returncode, self.stdout, self.stderr = returncode, "", stderr
+
+
+def _run(cmd):
+    try:
+        # stdin=DEVNULL: apparmor_parser with no file args reads a profile from
+        # stdin -- never let it block on / parse the caller's stdin.
+        return subprocess.run(cmd, capture_output=True, text=True,
+                              stdin=subprocess.DEVNULL)
+    except FileNotFoundError:
+        return _Result(127, "%s: not found (is apparmor installed?)" % cmd[0])
+
+
+# apply
+
+def _plan(cfg):
+    index = build_index(cfg)
+    selected, reasons = select(cfg, index)
+    return index, selected, reasons
+
+
+def do_apply(cfg, args):
+    if not args.dry_run:
+        reason = is_disabled()
+        if reason:
+            print("aa-sync: disabled (%s); nothing to do" % reason)
+            return EXIT_OK
+        if not apparmor_enabled():
+            print("aa-sync: AppArmor is not the active LSM; nothing to do")
+            return EXIT_OK
+
+    cfg.validate()
+    index, selected, reasons = _plan(cfg)
+    pdir = profiles_dir(cfg.share)
+
+    state = cfg.state
+    active = state / "active"
+    nxt = state / "next"
+    old_manifest = read_manifest(cfg)
+    prev = set(old_manifest.get("profiles", {}))
+
+    print("[select] %d/%d profile(s) selected (mode=%s, stability=%s)"
+          % (len(selected), len(index), cfg.mode,
+             ",".join(sorted(cfg.enabled_stability)) or "none"))
+
+    if args.dry_run:
+        for sym, names in (("+", sorted(selected - prev)), ("-", sorted(prev - selected))):
+            if names:
+                print("  %s %s" % (sym, ", ".join(names)))
+        return EXIT_OK
+
+    # Build next/ (mode 0755: readable, never group/other-writable).
+    state.mkdir(parents=True, exist_ok=True)
+    if nxt.exists():
+        shutil.rmtree(nxt)
+    nxt.mkdir(mode=0o755)
+    manifest = {"profiles": {}, "names": {}, "applied_at": int(args.now), "mode": cfg.mode,
+                "have_names": index.have_metadata}
+    failed = []
+    want_complain = cfg.default_mode == "complain"
+    for name in sorted(selected):
+        src = pdir / name
+        try:
+            body = src.read_text()
+            if want_complain or _match_any(name, cfg.complain):
+                body, changed = inject_complain(body)
+                if not changed:
+                    warn("complain requested for %s but no top-level header matched; "
+                         "loaded in enforce" % name)
+            dst = nxt / name
+            dst.write_text(body)
+            os.chmod(dst, 0o644)
+            manifest["profiles"][name] = sha256(dst)
+            manifest["names"][name] = index[name].names
+        except OSError as exc:
+            failed.append((name, str(exc)))
+    fsync_dir(nxt)
+
+    # Load from next/ and only swap active/ in once it succeeds, so a parser
+    # failure never leaves active/ or the manifest out of sync.
+    rc = EXIT_OK
+    loaded = cfg.reload and not args.no_reload
+    failed_drops = set()
+    if loaded:
+        rc, failed_drops = load_set(cfg, nxt, active, selected, prev)
+    else:
+        print("[apply] reload skipped; %d profile(s) staged" % len(selected))
+
+    if rc == EXIT_PARSER:
+        # Reconciled to the previous state; active/ and manifest are untouched.
+        shutil.rmtree(nxt, ignore_errors=True)
+        return rc
+
+    # Dropped-but-still-loaded profiles stay in the manifest so it does not
+    # falsely claim they are gone.
+    for name in failed_drops:
+        if name in old_manifest.get("profiles", {}):
+            manifest["profiles"][name] = old_manifest["profiles"][name]
+            manifest["names"][name] = old_manifest.get("names", {}).get(name, [name])
+    manifest["loaded"] = loaded     # staged-not-loaded sets up no kernel expectation
+
+    swap_dirs(active, nxt)          # commit: active/ becomes the new set
+    write_manifest(cfg, manifest)
+    shutil.rmtree(nxt, ignore_errors=True)
+
+    if failed:
+        for name, err in failed:
+            warn("FAILED to stage %s: %s" % (name, err))
+    if failed or failed_drops:
+        return EXIT_PARTIAL
+    return EXIT_OK
+
+
+def _remove_files(cfg, names_files):
+    """Unload by passing each FILE to apparmor_parser, so it reads the real
+    in-kernel name even when filename != profile name (firefox.apparmor.d ->
+    'firefox'). Returns the names that could not be unloaded (still in kernel)."""
+    failed = set()
+    for name, f in names_files:
+        if not Path(f).exists():
+            warn("could not unload %s: %s is gone" % (name, f))
+            failed.add(name)
+            continue
+        res = _run(parser_cmd(cfg, "--remove", [f]))
+        if res.returncode != 0:
+            lines = (res.stderr or res.stdout).strip().splitlines()
+            warn("could not unload %s: %s" % (name, lines[-1] if lines else "(no parser output)"))
+            failed.add(name)
+    return failed
+
+
+def load_set(cfg, nxt, active, selected, prev):
+    """Load the staged set from next/, unloading dropped profiles (via their old
+    files in active/). On parser failure, reconcile to the previous set and return
+    EXIT_PARSER. Returns (rc, failed_drops); failed_drops stay in the manifest."""
+    targets = sorted(nxt.glob("*"))
+    if targets:   # empty selection -> nothing to load (avoid a no-arg --replace)
+        res = _run(parser_cmd(cfg, "--replace", targets))
+        if res.returncode != 0:
+            warn("apparmor_parser --replace failed:\n%s" % (res.stderr.strip() or res.stdout.strip()))
+            # Revert any overlapping profiles to their previous version...
+            active_files = sorted(active.glob("*")) if active.is_dir() else []
+            if active_files:
+                _run(parser_cmd(cfg, "--replace", active_files))
+            # ...and unload net-new profiles the partial --replace may have loaded.
+            _remove_files(cfg, [(n, nxt / n) for n in sorted(selected - prev)])
+            warn("rolled back to the previously loaded set")
+            return EXIT_PARSER, set()
+    drop = sorted(prev - selected)
+    failed = _remove_files(cfg, [(n, active / n) for n in drop])  # old files, pre-swap
+    print("[apply] loaded %d profile(s) in enforce mode%s"
+          % (len(selected), (", removed %d" % (len(drop) - len(failed))) if drop else ""))
+    return EXIT_OK, failed
+
+
+# Other subcommands
+
+def do_list(cfg, args):
+    index, selected, _ = _plan(cfg)
+    if args.available:
+        for name in sorted(index):
+            grp = ",".join(index[name].groups)
+            print("%-40s %-9s %s" % (name, index[name].stability, grp))
+    else:
+        for name in sorted(selected):
+            print(name)
+    warn("%d selected / %d available" % (len(selected), len(index)))
+    return EXIT_OK
+
+
+def do_diff(cfg, args):
+    index, selected, _ = _plan(cfg)
+    prev = set(read_manifest(cfg).get("profiles", {}))
+    added, removed = sorted(selected - prev), sorted(prev - selected)
+    for sym, names in (("+", added), ("-", removed)):
+        for n in names:
+            print("%s %s" % (sym, n))
+    if not added and not removed:
+        print("# no changes: %d profile(s) already applied" % len(selected))
+    return EXIT_OK
+
+
+def do_explain(cfg, args):
+    index = build_index(cfg)
+    name = args.name.split("//", 1)[0]
+    if name not in index:
+        warn("%s is not an available profile" % name)
+        return EXIT_ERR
+    selected, reasons = select(cfg, index)
+    prof = index[name]
+    loaded = kernel_loaded_names()
+    print("profile:   %s" % name)
+    print("  source:    %s" % prof.path)
+    print("  stability: %s  (enabled: %s)"
+          % (prof.stability, ",".join(sorted(cfg.enabled_stability)) or "none"))
+    if prof.groups:
+        print("  groups:    %s" % ",".join(prof.groups))
+    print("  selection: mode=%s -> %s" % (cfg.mode, reasons.get(name, "n/a")))
+    print("  decision:  %s" % ("SELECTED" if name in selected else "NOT selected"))
+    kn = prof.names if index.have_metadata else [name]
+    if loaded is None:
+        state = "unknown (need root)"
+    else:
+        state = "loaded" if any(n in loaded for n in kn) else "not loaded"
+    print("  kernel:    %s" % state)
+    if name in selected:
+        print("  load cmd:  " + " ".join(parser_cmd(cfg, "--replace", [cfg.state / "active" / name])))
+    elif prof.stability != "disabled":
+        # The profile ships in the share; selection is the way to enable it
+        # (hand-loading would skip materialisation and create unmanaged state).
+        print("  enable:    add 'include = %s' to [selection] in %s "
+              "(applied automatically on save)" % (name, cfg.path))
+    return EXIT_OK
+
+
+def do_status(cfg, args):
+    manifest = read_manifest(cfg)
+    applied = set(manifest.get("profiles", {}))
+    print("aa-sync status")
+    print("  config:    %s" % cfg.path)
+    print("  share:     %s%s" % (cfg.share, "" if (cfg.share / "index.json").is_file() else "  (no index.json)"))
+    print("  state:     %s" % cfg.state)
+    print("  selection: mode=%s  stability=%s"
+          % (cfg.mode, ",".join(sorted(cfg.enabled_stability)) or "none"))
+    print("  mode:      default=%s" % cfg.default_mode)
+    print("  applied:   %d profile(s)" % len(applied))
+    print("  disabled:  %s" % (is_disabled() or "no"))
+    print("  apparmor:  %s" % ("active" if apparmor_enabled() else "NOT active"))
+    return EXIT_OK
+
+
+def do_verify(cfg, args):
+    cfg.validate()
+    index, selected, _ = _plan(cfg)
+    manifest = read_manifest(cfg)
+    applied = set(manifest.get("profiles", {}))
+    # config drift: selection vs the last applied set.
+    if applied != selected:
+        warn("config drift -- selection differs from the applied set (+%d/-%d); "
+             "run `aa-sync apply`" % (len(selected - applied), len(applied - selected)))
+        return EXIT_DRIFT
+    print("aa-sync: config valid; %d profile(s) selected; no drift" % len(selected))
+    return EXIT_OK
+
+
+def do_reload(cfg, args):
+    active = cfg.state / "active"
+    targets = sorted(active.glob("*")) if active.is_dir() else []
+    if not targets:
+        print("aa-sync: nothing to reload")
+        return EXIT_OK
+    if is_disabled() or not apparmor_enabled():
+        return EXIT_OK
+    res = _run(parser_cmd(cfg, "--replace", targets))
+    if res.returncode != 0:
+        warn(res.stderr.strip() or res.stdout.strip())
+        return EXIT_PARSER
+    print("aa-sync: reloaded %d profile(s)" % len(targets))
+    return EXIT_OK
+
+
+def do_gc(cfg, args):
+    """Remove leftover staging directories from interrupted runs."""
+    removed = 0
+    state = cfg.state
+    if not state.is_dir():
+        print("aa-sync: nothing to collect")
+        return EXIT_OK
+    for entry in state.iterdir():
+        if entry.name == "next" or entry.name.endswith(".old"):
+            shutil.rmtree(entry, ignore_errors=True)
+            removed += 1
+    print("aa-sync: removed %d stale staging dir(s)" % removed)
+    return EXIT_OK
+
+
+def do_disable(cfg, args):
+    flag = Path(DEFAULTS["disabled_flag"])
+    flag.parent.mkdir(parents=True, exist_ok=True)
+    flag.write_text("disabled by aa-sync at %d\n" % int(args.now))
+    os.chmod(flag, 0o644)
+    if apparmor_enabled():
+        active = cfg.state / "active"
+        # Unload by FILE (parser reads the real profile name), not basename.
+        _remove_files(cfg, [(n, active / n) for n in sorted(read_manifest(cfg).get("profiles", {}))])
+    print("aa-sync: disabled (%s); managed profiles unloaded" % flag)
+    return EXIT_OK
+
+
+def do_enable(cfg, args):
+    Path(DEFAULTS["disabled_flag"]).unlink(missing_ok=True)
+    print("aa-sync: enabled; run `aa-sync apply` to load the selected set")
+    return EXIT_OK
+
+
+# CLI
+
+def build_argparser():
+    p = argparse.ArgumentParser(
+        prog="aa-sync",
+        description="Materialise and load the selected subset of apparmor.d profiles.")
+    p.add_argument("--config", metavar="FILE", help="config file (default %s)" % DEFAULTS["config"])
+    p.add_argument("--share", metavar="DIR", help="available profiles tree (default %s)" % DEFAULTS["share"])
+    p.add_argument("--stock", metavar="DIR", help="stock apparmor tree for includes (default %s)" % DEFAULTS["stock"])
+    p.add_argument("--state", metavar="DIR", help="aa-sync state dir (default %s)" % DEFAULTS["state"])
+    p.add_argument("--stability", metavar="FILE", help="maturity JSON (default <share>/stability.json)")
+    p.set_defaults(dry_run=False, no_reload=False)
+    sub = p.add_subparsers(dest="cmd")
+
+    ap = sub.add_parser("apply", help="compute the selection and load it (default)")
+    ap.add_argument("--dry-run", action="store_true", help="compute and report, change nothing")
+    ap.add_argument("--no-reload", action="store_true", help="stage active/ but do not load")
+
+    li = sub.add_parser("list", help="list selected (or --available) profiles")
+    li.add_argument("--available", action="store_true", help="list all available with stability/groups")
+
+    ex = sub.add_parser("explain", help="explain why a profile is / isn't selected")
+    ex.add_argument("name")
+
+    sub.add_parser("diff", help="show pending changes vs the applied set")
+    sub.add_parser("status", help="show current state and drift")
+    sub.add_parser("verify", help="validate config and detect drift")
+    sub.add_parser("reload", help="reload the active set (used by hooks)")
+    sub.add_parser("gc", help="remove leftover staging dirs")
+    sub.add_parser("enable", help="clear the persistent disable switch")
+    sub.add_parser("disable", help="persistently disable and unload managed profiles")
+    return p
+
+
+# subcommands that change on-disk/loaded state -> exclusive lock
+_WRITERS = {"apply", "reload", "gc", "disable", "enable"}
+
+_HANDLERS = {
+    "apply": do_apply, "list": do_list, "diff": do_diff, "explain": do_explain,
+    "status": do_status, "verify": do_verify, "reload": do_reload, "gc": do_gc,
+    "enable": do_enable, "disable": do_disable,
+}
+
+
+def main(argv=None):
+    # Cap the umask: the loaded set must never be group/other-writable (TOCTOU on
+    # the files apparmor_parser reads).
+    os.umask(os.umask(0o022) | 0o022)
+    args = build_argparser().parse_args(argv)
+    args.cmd = args.cmd or "apply"
+    args.now = time.time()
+
+    cfg = Config(args)
+    handler = _HANDLERS[args.cmd]
+    locked = args.cmd in _WRITERS and not (args.cmd == "apply" and args.dry_run)
+    if locked:
+        with Lock(cfg):
+            return handler(cfg, args)
+    return handler(cfg, args)
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except SystemExit2:
+        raise
+    except KeyboardInterrupt:
+        sys.exit(130)

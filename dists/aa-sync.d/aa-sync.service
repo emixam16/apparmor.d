@@ -1,0 +1,23 @@
+[Unit]
+Description=Materialise and load the selected apparmor.d profile set
+After=apparmor.service
+Wants=apparmor.service
+ConditionSecurity=apparmor
+# No StartLimit*: aa-sync.path legitimately starts this once per package
+# transaction, and StartLimitBurst counts *successful* starts too -- hitting it
+# would mark the triggering .path unit failed and permanently stop resyncs. The
+# aa-sync flock and apply being an idempotent full reconcile prevent busy-loops.
+
+[Service]
+Type=oneshot
+# NO RemainAfterExit: the unit must go inactive after each run so aa-sync.path
+# can re-trigger it on the next package transaction / config change.
+Environment=PATH=/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=/usr/bin/aa-sync apply
+# apply is idempotent and self-heals; non-fatal exits must not fail the unit.
+SuccessExitStatus=0 4 5
+Nice=10
+IOSchedulingClass=idle
+
+[Install]
+WantedBy=multi-user.target

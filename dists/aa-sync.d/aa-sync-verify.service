@@ -1,0 +1,9 @@
+[Unit]
+Description=Check the apparmor.d selection for drift
+ConditionSecurity=apparmor
+
+[Service]
+Type=oneshot
+Environment=PATH=/usr/sbin:/usr/bin:/sbin:/bin
+# A failed unit (exit 7 = drift, exit 2 = bad config) is the monitoring signal.
+ExecStart=/usr/bin/aa-sync verify
